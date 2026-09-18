@@ -85,8 +85,19 @@
       let shieldSpawned = 0;
       let blockCount = 0;
       let blockBeforeProtocol = 0;
+      let bossActive = false;
+      let bossDefeated = false;
+      let bossPhase = 0;
+      let bossMaxHp = fast ? 140 : 2800;
+      let bossHp = bossMaxHp;
+      let bossSprite = null;
+      let bossSkillCooldown = 0;
+      let bossWarningShown = false;
+      let victory = false;
       const analysisAt = fast ? 2.2 : 120;
       const emergencyEarliest = fast ? 3.1 : 128;
+      const bossWarningAt = fast ? 4.7 : 270;
+      const bossAt = fast ? 5.6 : 300;
       const ui = createUI();
       const modalLayer = new Laya.Sprite();
       stage.addChild(modalLayer);
@@ -97,7 +108,7 @@
         ready: true,
         engine: "LayaAir",
         engineVersion: "3.4.0",
-        version: "0.3-vertical-slice-1",
+        version: "0.4.2-boss-slice",
         codeFirst: true,
         fast,
         playerX: player.x,
@@ -116,6 +127,12 @@
         blockBeforeProtocol,
         emergencyUpgrade: emergencyCounter,
         evolved,
+        bossActive,
+        bossPhase,
+        bossHp,
+        bossMaxHp,
+        bossDefeated,
+        victory,
         running: gameStarted
       };
       win.__XIANG_AI_LAYA__ = probe;
@@ -198,10 +215,23 @@
         stage.addChild(aiBg);
         const aiBar = new Laya.Sprite();
         stage.addChild(aiBar);
+        const bossText = makeText("", 16, "#ff8fa0", true);
+        bossText.width = W - 36;
+        bossText.align = "center";
+        bossText.pos(18, 151);
+        bossText.visible = false;
+        stage.addChild(bossText);
+        const bossBarBg = new Laya.Sprite();
+        bossBarBg.graphics.drawRoundRect(48, 176, W - 96, 12, 6, "#351521");
+        bossBarBg.visible = false;
+        stage.addChild(bossBarBg);
+        const bossBar = new Laya.Sprite();
+        bossBar.visible = false;
+        stage.addChild(bossBar);
         const message = makeText("", 21, "#ffffff", true);
         message.width = W - 30;
         message.align = "center";
-        message.pos(15, 153);
+        message.pos(15, 198);
         stage.addChild(message);
         const buildText = makeText("", 15, "#6f8ca1");
         buildText.width = W - 36;
@@ -209,7 +239,20 @@
         stage.addChild(buildText);
         const floating = new Laya.Sprite();
         stage.addChild(floating);
-        return { hud, hpText, statText, xpBar, aiText, aiBar, message, buildText, floating };
+        return {
+          hud,
+          hpText,
+          statText,
+          xpBar,
+          aiText,
+          aiBar,
+          bossText,
+          bossBarBg,
+          bossBar,
+          message,
+          buildText,
+          floating
+        };
       }
       function showStartScreen() {
         paused = true;
@@ -490,7 +533,25 @@
         });
       }
       function fire() {
-        if (!enemies.length) return;
+        if (!enemies.length && !bossActive) return;
+        if (bossActive && bossSprite) {
+          const dx2 = bossSprite.x - player.x;
+          const dy2 = bossSprite.y - player.y;
+          if (evolved) {
+            for (let i = 0; i < 8; i++) {
+              const a = i / 8 * Math.PI * 2;
+              fireBullet(Math.cos(a), Math.sin(a));
+            }
+          } else {
+            fireBullet(dx2, dy2);
+            if (nailLevel >= 3) {
+              const a = Math.atan2(dy2, dx2);
+              fireBullet(Math.cos(a + 0.11), Math.sin(a + 0.11));
+              fireBullet(Math.cos(a - 0.11), Math.sin(a - 0.11));
+            }
+          }
+          return;
+        }
         if (evolved) {
           for (let i = 0; i < 8; i++) {
             const a = i / 8 * Math.PI * 2;
@@ -527,6 +588,134 @@
         e.sprite.destroy();
         enemies.splice(index, 1);
         kills++;
+      }
+      function createBoss() {
+        if (bossActive || bossDefeated) return;
+        bossActive = true;
+        bossPhase = 1;
+        bossHp = bossMaxHp;
+        bossSkillCooldown = fast ? 0.7 : 1.8;
+        const s = new Laya.Sprite();
+        s.graphics.drawCircle(0, 0, 68, "#17283a");
+        s.graphics.drawCircle(0, 0, 56, "#344b63");
+        s.graphics.drawCircle(0, 0, 34, "#0d1723");
+        s.graphics.drawCircle(0, 0, 20, "#ff4f68");
+        s.graphics.drawCircle(0, 0, 9, "#ffd7dc");
+        s.graphics.drawRoundRect(-92, -16, 38, 32, 10, "#536f87");
+        s.graphics.drawRoundRect(54, -16, 38, 32, 10, "#536f87");
+        s.graphics.drawLine(-54, 0, -91, 0, "#7e9cb2", 8);
+        s.graphics.drawLine(54, 0, 91, 0, "#7e9cb2", 8);
+        s.graphics.drawCircle(-73, 0, 8, "#ffb84f");
+        s.graphics.drawCircle(73, 0, 8, "#ffb84f");
+        s.pos(W * 0.5, playTop + 110);
+        world.addChild(s);
+        bossSprite = s;
+        ui.bossText.visible = true;
+        ui.bossBarBg.visible = true;
+        ui.bossBar.visible = true;
+        flash("GPT-0 原型机：删除人类协议，开始。", "#ff7182");
+        for (let i = 0; i < 3; i++) spawnEnemy(true);
+      }
+      function bossPhaseForHp() {
+        const ratio = bossHp / bossMaxHp;
+        return ratio > 0.65 ? 1 : ratio > 0.35 ? 2 : 3;
+      }
+      function updateBoss(dt) {
+        if (!bossActive || !bossSprite || bossDefeated) return;
+        const targetPhase = bossPhaseForHp();
+        if (targetPhase !== bossPhase) {
+          bossPhase = targetPhase;
+          if (bossPhase === 2) {
+            flash("GPT-0：已复制你的攻击节奏。部署镜像护卫。", "#ff9b70");
+            for (let i = 0; i < 5; i++) spawnEnemy(true);
+          } else if (bossPhase === 3) {
+            flash("DELETE HUMAN PROTOCOL · 99.7%", "#ff4f68");
+            for (let i = 0; i < 7; i++) spawnEnemy(i % 2 === 0);
+          }
+        }
+        const speed = bossPhase === 3 ? 1.9 : bossPhase === 2 ? 1.25 : 0.8;
+        bossSprite.x = W * 0.5 + Math.sin(elapsed * speed) * Math.min(150, W * 0.28);
+        bossSprite.y = playTop + 105 + Math.cos(elapsed * 0.9) * 28;
+        bossSprite.rotation += (bossPhase === 3 ? 35 : 14) * dt;
+        bossSkillCooldown -= dt;
+        if (bossSkillCooldown <= 0) {
+          bossSkillCooldown = fast ? bossPhase === 3 ? 0.55 : 0.8 : bossPhase === 3 ? 1.05 : bossPhase === 2 ? 1.35 : 1.8;
+          const dx = player.x - bossSprite.x;
+          const dy = player.y - bossSprite.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < (bossPhase === 3 ? 310 : 245)) {
+            const raw = bossPhase === 3 ? 13 : bossPhase === 2 ? 10 : 7;
+            const damage = Math.max(1, Math.round(raw * (1 - armor)));
+            hp -= damage;
+            showFloat("-" + damage, player.x, player.y, "#ff7182");
+            if (hp <= 0) gameOverScreen();
+          }
+          const summons = bossPhase === 3 ? 3 : bossPhase === 2 ? 2 : 1;
+          for (let i = 0; i < summons; i++) {
+            spawnEnemy(bossPhase >= 2 && i === 0);
+          }
+        }
+      }
+      function damageBoss(value) {
+        if (!bossActive || bossDefeated) return;
+        bossHp -= value;
+        showFloat("-" + Math.round(value), bossSprite.x, bossSprite.y - 54, "#ffd77b");
+        if (bossHp <= 0) defeatBoss();
+      }
+      function defeatBoss() {
+        if (bossDefeated) return;
+        bossDefeated = true;
+        bossActive = false;
+        victory = true;
+        bossHp = 0;
+        if (bossSprite) {
+          for (let i = 0; i < 14; i++) {
+            const a = i / 14 * Math.PI * 2;
+            const p = new Laya.Sprite();
+            p.graphics.drawCircle(0, 0, i % 3 === 0 ? 7 : 4, i % 2 ? "#ff6b72" : "#ffd15f");
+            p.pos(bossSprite.x + Math.cos(a) * 36, bossSprite.y + Math.sin(a) * 36);
+            ui.floating.addChild(p);
+          }
+          bossSprite.removeSelf();
+          bossSprite.destroy();
+          bossSprite = null;
+        }
+        ui.bossText.visible = false;
+        ui.bossBarBg.visible = false;
+        ui.bossBar.visible = false;
+        showVictory();
+      }
+      function showVictory() {
+        paused = true;
+        modalLayer.removeChildren();
+        const shade = new Laya.Sprite();
+        shade.graphics.drawRect(0, 0, W, H, "#02070de8");
+        modalLayer.addChild(shade);
+        const badge = makeText("AI CORE OFFLINE", 16, "#72f5d0", true);
+        badge.width = W;
+        badge.align = "center";
+        badge.pos(0, H * 0.29);
+        modalLayer.addChild(badge);
+        const t = makeText("GPT-0 已击破", 40, "#ffffff", true);
+        t.width = W;
+        t.align = "center";
+        t.pos(0, H * 0.35);
+        modalLayer.addChild(t);
+        const stat = makeText(
+          "生存 " + Math.floor(elapsed) + " 秒 · 击毁 " + kills + " · LV." + level + "\n获得 AI Core ×10",
+          19,
+          "#d5e2e9"
+        );
+        stat.leading = 10;
+        stat.width = W;
+        stat.align = "center";
+        stat.pos(0, H * 0.43);
+        modalLayer.addChild(stat);
+        const sub = makeText("第一章：智慧社区 · 暂时安全", 18, "#9fb5c5", true);
+        sub.width = W;
+        sub.align = "center";
+        sub.pos(0, H * 0.54);
+        modalLayer.addChild(sub);
       }
       function showFloat(text, x, y, color) {
         if (ui.floating.numChildren > 24) return;
@@ -694,6 +883,21 @@
         shieldSpawned = 0;
         blockCount = 0;
         blockBeforeProtocol = 0;
+        bossActive = false;
+        bossDefeated = false;
+        bossPhase = 0;
+        bossHp = bossMaxHp;
+        bossSkillCooldown = 0;
+        bossWarningShown = false;
+        victory = false;
+        if (bossSprite) {
+          bossSprite.removeSelf();
+          bossSprite.destroy();
+          bossSprite = null;
+        }
+        ui.bossText.visible = false;
+        ui.bossBarBg.visible = false;
+        ui.bossBar.visible = false;
         aiBannerUntil = 0;
         gameOver = false;
         paused = false;
@@ -749,7 +953,8 @@
         player.y = Math.max(playTop, Math.min(playBottom, player.y));
       }
       function updateSpawner(dt) {
-        spawnBudget += spawnRate() * dt;
+        const bossFactor = bossActive ? 0.42 : 1;
+        spawnBudget += spawnRate() * bossFactor * dt;
         let guard = 0;
         while (guard++ < 14 && enemies.length < 180) {
           const kind = chooseEnemyKind(false);
@@ -766,6 +971,15 @@
           b.sprite.y += b.vy * dt;
           b.life -= dt;
           let consumed = false;
+          if (bossActive && bossSprite && !consumed) {
+            const dx = bossSprite.x - b.sprite.x;
+            const dy = bossSprite.y - b.sprite.y;
+            if (dx * dx + dy * dy <= 78 * 78) {
+              damageBoss(b.damage);
+              b.pierce--;
+              if (b.pierce <= 0) consumed = true;
+            }
+          }
           for (let j = enemies.length - 1; j >= 0 && !consumed; j--) {
             const e = enemies[j];
             const dx = e.sprite.x - b.sprite.x;
@@ -863,7 +1077,8 @@
         ui.aiBar.graphics.clear();
         ui.aiBar.graphics.drawRoundRect(18, 132, Math.max(2, (W - 36) * aiProgress), 10, 5, aiAnalyzed ? "#ff667b" : "#4dd7c2");
         ui.hpText.text = "HP " + Math.max(0, Math.ceil(hp)) + "/" + maxHp + "   LV." + level + "   XP " + xp + "/" + nextXp;
-        ui.statText.text = "击毁 " + kills + " · 敌人 " + enemies.length + " · " + Math.floor(elapsed) + "s";
+        const remain = Math.max(0, Math.ceil(bossAt - elapsed));
+        ui.statText.text = bossActive ? "BOSS P" + bossPhase + " · 敌人 " + enemies.length : "击毁 " + kills + " · 敌人 " + enemies.length + " · BOSS " + remain + "s";
         ui.aiText.text = aiAnalyzed ? "中央AI：已锁定实弹 Build · 主反制=盾卫" : "AI 学习度 " + Math.round(aiProgress * 100) + "%";
         const build = [
           "射钉枪 L" + nailLevel,
@@ -874,6 +1089,15 @@
         if (evolved) build.push("★无限弹幕");
         if (emergencyCounter) build.push("应急:" + emergencyCounter);
         ui.buildText.text = build.join("   ");
+        if (bossActive) {
+          const ratio = Math.max(0, bossHp / bossMaxHp);
+          ui.bossText.visible = true;
+          ui.bossBarBg.visible = true;
+          ui.bossBar.visible = true;
+          ui.bossText.text = "GPT-0 原型机 · PHASE " + bossPhase + " · " + Math.ceil(ratio * 100) + "%";
+          ui.bossBar.graphics.clear();
+          ui.bossBar.graphics.drawRoundRect(48, 176, Math.max(2, (W - 96) * ratio), 12, 6, bossPhase === 3 ? "#ff445f" : "#ff7182");
+        }
         if (ui.message.text && elapsed >= aiBannerUntil && !paused) ui.message.text = "";
       }
       function syncProbe() {
@@ -894,7 +1118,13 @@
         probe.blockBeforeProtocol = blockBeforeProtocol;
         probe.emergencyUpgrade = emergencyCounter;
         probe.evolved = evolved;
-        probe.running = gameStarted && !gameOver;
+        probe.bossActive = bossActive;
+        probe.bossPhase = bossPhase;
+        probe.bossHp = bossHp;
+        probe.bossMaxHp = bossMaxHp;
+        probe.bossDefeated = bossDefeated;
+        probe.victory = victory;
+        probe.running = gameStarted && !gameOver && !victory;
         probe.elapsed = elapsed;
       }
       function loop() {
@@ -914,9 +1144,17 @@
           if (aiAnalyzed && !emergencyShown && elapsed >= emergencyEarliest && blockCount >= 3) {
             showEmergencyProtocol();
           }
+          if (!bossWarningShown && elapsed >= bossWarningAt) {
+            bossWarningShown = true;
+            flash("警告：检测到大型AI核心正在接入战场。", "#ff9b70");
+          }
+          if (!bossActive && !bossDefeated && elapsed >= bossAt) {
+            createBoss();
+          }
           updateBullets(dt);
           updateEnemies(dt);
           updatePickups(dt);
+          updateBoss(dt);
         }
         updateUI();
         syncProbe();
