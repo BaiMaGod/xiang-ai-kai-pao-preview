@@ -49,14 +49,13 @@ jobs:
         run: |
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
           python3 -m http.server 4173 --directory "$GITHUB_WORKSPACE/LayaXiangAI/release/web" >/tmp/laya-preview.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID || true' EXIT
           node <<'NODE'
           const { chromium } = require('playwright');
           (async () => {
-            const browser = await chromium.launch({ headless: true });
+            const browser = await chromium.launch({ headless: true, executablePath: '/usr/bin/google-chrome' });
             const page = await browser.newPage({ viewport: { width: 540, height: 960 } });
             const errors = [];
             page.on('pageerror', e => errors.push('pageerror: ' + e.message));
