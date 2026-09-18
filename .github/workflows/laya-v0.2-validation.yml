@@ -45,6 +45,36 @@ jobs:
         run: |
           ~/.layaair/layaair --version=3.4.0 build web -p "$GITHUB_WORKSPACE/LayaXiangAI"
 
+      - name: Chromium code-first smoke test
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+          python3 -m http.server 4173 --directory "$GITHUB_WORKSPACE/LayaXiangAI/release/web" >/tmp/laya-preview.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage({ viewport: { width: 540, height: 960 } });
+            const errors = [];
+            page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+            page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle', timeout: 60000 });
+            await page.waitForFunction(() => window.__LAYA_PROBE__?.ok === true, null, { timeout: 20000 });
+            const state = await page.evaluate(() => ({
+              probe: window.__LAYA_PROBE__,
+              canvas: !!document.querySelector('canvas')
+            }));
+            console.log('LAYA_CODE_FIRST_STATE', JSON.stringify(state));
+            if (!state.canvas) throw new Error('Laya canvas missing');
+            if (errors.length) throw new Error(errors.join('\n'));
+            await browser.close();
+            console.log('LAYA_CODE_FIRST_OK');
+          })().catch(err => { console.error(err); process.exit(1); });
+          NODE
+
       - name: Commit official template to validation branch
         run: |
           git config user.name "github-actions[bot]"
