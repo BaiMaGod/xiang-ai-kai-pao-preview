@@ -104,6 +104,24 @@ jobs:
             git push origin HEAD:laya-v0.2-tech-validation
           fi
 
+      - name: Publish Laya Web build into public preview
+        run: |
+          git fetch origin main
+          rm -rf /tmp/preview-main
+          git worktree add /tmp/preview-main origin/main
+          cd /tmp/preview-main
+          rm -rf laya-v0.2
+          mkdir -p laya-v0.2
+          cp -a "$GITHUB_WORKSPACE/LayaXiangAI/release/web/." laya-v0.2/
+          touch laya-v0.2/.nojekyll
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add laya-v0.2
+          if ! git diff --cached --quiet; then
+            git commit -m "preview: publish LayaAir V0.2 build"
+            git push origin HEAD:main
+          fi
+
       - name: Upload Web build and smoke screenshot
         uses: actions/upload-artifact@v4
         with:
