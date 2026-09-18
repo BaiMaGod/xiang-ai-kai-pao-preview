@@ -1,0 +1,117 @@
+
+  checkEvolution(){ if(!this.player.evolved && this.player.gunLevel>=3 && this.player.ammoPrinter>=3){this.player.evolved=true;this.showToast('武器进化：无限弹幕\n360°火力开启',1800);} }
+
+  renderChoices(options,onPick){ dom.choices.innerHTML=''; for(const o of options){const b=document.createElement('button');b.className='choice';b.innerHTML=`<b>${o.name}</b><small>${o.desc}</small>`;b.onclick=()=>onPick(o);dom.choices.appendChild(b);} dom.modal.classList.remove('hidden'); if(TEST_MODE){setTimeout(()=>{dom.choices.querySelector('button')?.click()},180);} }
+
+  closeModal(){ dom.modal.classList.add('hidden');this.modalState='NONE';this.paused=false;setTimeout(()=>this.maybeOpenLevelUp(),30); }
+
+  handleModelEvent(ev) {
+    if(ev.type==='AI_ANALYSIS'){
+      this.aiShieldWeight=.28; this.showToast('CENTRAL AI\n分析完成：主要威胁 = 实弹\n正在部署防弹单位',1800); document.body.dataset.testStatus='ai';
+      for(let i=0;i<(TEST_MODE?3:2);i++) this.spawnEnemy('shield',Math.random()*Math.PI*2,8+i);
+    } else if(ev.type==='COUNTER_OFFER') this.openCounterModal();
+    else if(ev.type==='BOSS') this.startBoss();
+  }
+
+  openCounterModal() {
+    if(this.modalState!=='NONE') { setTimeout(()=>this.openCounterModal(),250); return; }
+    this.modalState='COUNTER_SELECT'; this.paused=true;
+    dom.kicker.textContent='HUMAN COUNTER PROTOCOL';dom.title.textContent='AI针对你了。怎么拆盾？';dom.desc.textContent='你已经亲眼看见了 BLOCK。现在选择一种人类应对方式。';
+    const opts=[
+      {id:'pierce',name:'穿甲钉',desc:'正面命中盾牌时大幅降低减伤。'},
+      {id:'ricochet',name:'跳射',desc:'命中盾牌后，有效伤害会绕射到机器人本体。'},
+      {id:'empnail',name:'EMP钉',desc:'连续命中5次，暂时关闭盾牌。'}
+    ];
+    this.renderChoices(opts,o=>{this.model.chooseCounter(o.id);this.closeModal();this.showToast('AI反制已被破解 · RPG / EMP进入升级池',1500);});
+  }
+
+  updateEnemies(dt) {
+    const pp=this.player.mesh.position;
+    for(const e of this.enemyPool){ if(!e.active) continue; e.contactCd=Math.max(0,e.contactCd-dt);e.shieldDisabled=Math.max(0,e.shieldDisabled-dt);e.stun=Math.max(0,e.stun-dt);
+      const to=pp.clone().sub(e.mesh.position); const dist=to.length(); const dir=to.normalize();
+      if(e.type==='shield') e.mesh.rotation.y=-Math.atan2(dir.z,dir.x);
+      if(e.type==='drone'){
+        e.shootCd-=dt;
+        if(e.stun<=0){ if(dist>4.8)e.mesh.position.addScaledVector(dir,e.speed*dt); else if(dist<3.4)e.mesh.position.addScaledVector(dir,-e.speed*.7*dt); }
+        if(e.shootCd<=0&&dist<6.5){e.shootCd=2.0;this.fireEnemyShot(e.mesh.position,pp);}
+      } else if(e.type==='dog'){
+        e.dashCd-=dt;if(e.dashCd<=0){e.dashCd=3;e.dashTime=.45;}e.dashTime=Math.max(0,e.dashTime-dt); if(e.stun<=0)e.mesh.position.addScaledVector(dir,e.speed*(e.dashTime>0?1.9:1)*dt);
+      } else if(e.stun<=0) e.mesh.position.addScaledVector(dir,e.speed*dt);
+      if(dist<e.r+this.player.radius+.08 && e.contactCd<=0){e.contactCd=.7;this.hurtPlayer(e.damage);}
+    }
+  }
+
+  fireEnemyShot(from,to){ let s=this.enemyShotPool.find(x=>!x.active); if(!s){const mesh=new THREE.Mesh(new THREE.SphereGeometry(.09,6,5),new THREE.MeshBasicMaterial({color:0xff5360}));this.scene.add(mesh);s={mesh,active:false};this.enemyShotPool.push(s);} s.active=true;s.mesh.visible=true;s.mesh.position.set(from.x,1.35,from.z);s.vel=to.clone().sub(from).setY(0).normalize().multiplyScalar(7);s.life=2.3;s.damage=9; }
+
+  updateEnemyShots(dt){for(const s of this.enemyShotPool){if(!s.active)continue;s.life-=dt;if(s.life<=0){this.deactivate(s);continue;}s.mesh.position.addScaledVector(s.vel,dt);if(s.mesh.position.distanceTo(this.player.mesh.position)<.42){this.hurtPlayer(s.damage);this.deactivate(s);}}}
+
+  hurtPlayer(amount){ if(this.player.invuln>0||TEST_MODE)return;this.player.hp-=amount*(1-this.player.armor);this.player.invuln=.5;if(this.player.hp<=0)this.lose(); }
+
+  updatePlayer(dt){const p=this.player;p.invuln=Math.max(0,p.invuln-dt);p.skillCd=Math.max(0,p.skillCd-dt);let x=0,z=0;if(this.keys.has('KeyA')||this.keys.has('ArrowLeft'))x--;if(this.keys.has('KeyD')||this.keys.has('ArrowRight'))x++;if(this.keys.has('KeyW')||this.keys.has('ArrowUp'))z--;if(this.keys.has('KeyS')||this.keys.has('ArrowDown'))z++;x+=this.joyInput.x;z+=this.joyInput.y;
+    if(TEST_MODE && Math.abs(x)+Math.abs(z)<.01){const a=this.model.time*.55;x=Math.cos(a)*.45;z=Math.sin(a)*.45;}
+    const v=new THREE.Vector2(x,z);if(v.lengthSq()>1)v.normalize();p.mesh.position.x+=v.x*p.speed*dt;p.mesh.position.z+=v.y*p.speed*dt;p.mesh.position.x=THREE.MathUtils.clamp(p.mesh.position.x,-22,22);p.mesh.position.z=THREE.MathUtils.clamp(p.mesh.position.z,-22,22);if(v.lengthSq()>.02)p.mesh.rotation.y=Math.atan2(v.y,v.x);
+  }
+
+  useSkill(){if(!this.player||this.player.skillCd>0||this.state!=='RUNNING')return;this.player.skillCd=TEST_MODE?8:60;this.releaseEMP(7,12,4);this.showToast('老王：智能是吧？电费交了吗？',900);}
+
+  updateEffects(dt){for(let i=this.effects.length-1;i>=0;i--){const e=this.effects[i];e.t+=dt;if(e.kind==='ring'){const k=e.t/e.d;e.mesh.scale.setScalar(1+k*e.max*1.5);e.mesh.material.opacity=.85*(1-k);} else if(e.kind==='blast'){const k=e.t/e.d;e.mesh.scale.setScalar(1+k*e.max*1.8);e.mesh.material.opacity=.8*(1-k);} else if(e.kind==='damage'){e.el.style.transform=`translate(-50%, ${-e.t*35}px)`;e.el.style.opacity=String(Math.max(0,1-e.t/e.d));}
+      if(e.t>=e.d){if(e.mesh)this.scene.remove(e.mesh);if(e.el)e.el.remove();this.effects.splice(i,1);}}
+  }
+
+  showDamage(worldPos,text,cls='hit'){
+    if(this.effects.filter(e=>e.kind==='damage').length>18)return;
+    const v=worldPos.clone();v.y+=1;v.project(this.camera);const x=(v.x*.5+.5)*innerWidth,y=(-v.y*.5+.5)*innerHeight;const d=document.createElement('div');d.className=`damage ${cls}`;d.textContent=text;d.style.left=`${x}px`;d.style.top=`${y}px`;document.body.appendChild(d);this.effects.push({kind:'damage',el:d,t:0,d:.65});
+  }
+
+  startBoss(){if(this.runPhase==='BOSS')return;this.runPhase='BOSS';this.spawnSuppressed=true;for(const e of this.enemyPool) if(e.active && e.type!=='shield') this.deactivate(e);this.createBoss();this.showToast('BOSS · 智慧家庭原型机\n正在下载你的战斗模型',1800);document.body.dataset.testStatus='boss';}
+
+  createBoss(){const g=new THREE.Group();const fridge=new THREE.Mesh(new THREE.BoxGeometry(1.7,2.25,1.4),this.mat(0xd9e4e6,.45));fridge.position.y=1.4;g.add(fridge);const tv=new THREE.Mesh(new THREE.BoxGeometry(1.45,.85,.25),this.mat(0x29333c,.35));tv.position.set(0,2.95,.05);g.add(tv);const screen=new THREE.Mesh(new THREE.BoxGeometry(1.2,.58,.04),new THREE.MeshBasicMaterial({color:0xffa142}));screen.position.set(0,2.95,.185);g.add(screen);for(const x of [-1.25,1.25]){const arm=new THREE.Mesh(new THREE.BoxGeometry(.65,.7,.7),this.mat(x<0?0xaec7d1:0xbfc5c8));arm.position.set(x,1.65,0);g.add(arm);}for(const x of [-.6,.6]){const foot=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,.25,16),this.mat(0x48636c));foot.rotation.z=Math.PI/2;foot.position.set(x,.18,0);g.add(foot);}g.position.set(0,0,-9);this.scene.add(g);this.boss={mesh:g,active:true,hp:TEST_MODE?260:900,maxHp:TEST_MODE?260:900,r:1.2,damage:22,contactCd:0,attackCd:1.5,shieldAngle:0,slow:0};}
+
+  updateBoss(dt){const b=this.boss;if(!b?.active)return;b.attackCd-=dt;b.contactCd=Math.max(0,b.contactCd-dt);b.slow=Math.max(0,(b.slow||0)-dt);if(b.hp<=b.maxHp*.5)b.shieldAngle+=dt*.75;const p=this.player.mesh.position;const d=p.clone().sub(b.mesh.position);const dist=d.length();if(dist>5.3)b.mesh.position.addScaledVector(d.normalize(),dt*(b.slow>0?.55:1));if(b.attackCd<=0){b.attackCd=b.hp>b.maxHp*.5?1.8:1.25;for(let i=-1;i<=1;i++){const dir=p.clone().sub(b.mesh.position).setY(0).normalize();const a=Math.atan2(dir.z,dir.x)+i*.18;this.fireBossShot(b.mesh.position,new THREE.Vector3(Math.cos(a),0,Math.sin(a)));}}
+    if(dist<1.6 && b.contactCd<=0){b.contactCd=.7;this.hurtPlayer(18);}
+  }
+
+  fireBossShot(from,dir){let s=this.enemyShotPool.find(x=>!x.active);if(!s){const mesh=new THREE.Mesh(new THREE.SphereGeometry(.11,7,5),new THREE.MeshBasicMaterial({color:0xff765c}));this.scene.add(mesh);s={mesh,active:false};this.enemyShotPool.push(s);}s.active=true;s.mesh.visible=true;s.mesh.position.set(from.x,1.4,from.z);s.vel=dir.clone().multiplyScalar(8);s.life=3;s.damage=11;}
+
+  updateCamera(dt){const p=this.player.mesh.position;const target=new THREE.Vector3(p.x+7.5,12.5,p.z+10);this.camera.position.lerp(target,1-Math.pow(.002,dt));this.camera.lookAt(p.x,.5,p.z);}
+
+  updateHUD(){if(!this.player)return;dom.hpFill.style.width=`${Math.max(0,this.player.hp/this.player.maxHp*100)}%`;dom.hpText.textContent=`${Math.ceil(Math.max(0,this.player.hp))} / ${this.player.maxHp}`;dom.level.textContent=this.model.level;dom.xpFill.style.width=`${Math.min(100,this.model.xp/this.model.xpNeed*100)}%`;const m=Math.floor(this.model.time/60),s=Math.floor(this.model.time%60);dom.timer.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;const a=this.model.aiProgress();dom.aiFill.style.width=`${a*100}%`;dom.aiText.textContent=`${Math.round(a*100)}%`;dom.skillCd.textContent=this.player.skillCd>0?`${this.player.skillCd.toFixed(0)}s`:'READY';
+    const build=[`射钉枪L${this.player.gunLevel}`];if(this.player.evolved)build.push('无限弹幕');if(this.player.rpgLevel)build.push(`RPG L${this.player.rpgLevel}`);if(this.player.empLevel)build.push(`EMP L${this.player.empLevel}`);dom.status.textContent=`${build.join(' · ')} · ${this.model.aiTriggered?'AI主反制：防弹盾卫':'AI尚未锁定你的打法'}`;
+    if(!dom.debug.classList.contains('hidden'))dom.debug.textContent=`FPS: ${this.fps||0}\nEnemies: ${this.enemyPool.filter(e=>e.active).length}\nProjectiles: ${this.projectilePool.filter(e=>e.active).length}\nDPS total: ${Math.round(this.stats.totalDamage)}\nBULLET/EXP/EMP samples: ${this.model.damageSamples.length}\nAI: ${Math.round(a*100)}%\nCounter: ${this.model.counterChosen||'-'}\nBudget: ${this.model.spawnBudget.toFixed(1)}\nPhase: ${this.runPhase}\nModal: ${this.modalState}`;
+  }
+
+  showToast(text,ms=1200){clearTimeout(this.toastTimer);dom.toast.innerText=text;dom.toast.classList.remove('hidden');this.toastTimer=setTimeout(()=>dom.toast.classList.add('hidden'),ms);}
+
+  lose(){if(this.state!=='RUNNING')return;this.state='GAME_OVER';this.paused=true;this.model.gameOver=true;dom.hud.classList.add('hidden');dom.endKicker.textContent='AI PREDICTION: CORRECT';dom.endTitle.textContent='人类样本已删除';dom.endStats.innerHTML=`生存 ${this.formatTime(this.model.time)}<br>击杀机器人 ${this.model.kills}<br>BLOCK ${this.stats.blockedHits} 次`;dom.end.classList.remove('hidden');document.body.dataset.testStatus='gameover';}
+
+  win(){if(this.state!=='RUNNING')return;this.boss.active=false;this.boss.mesh.visible=false;this.state='VICTORY';this.paused=true;this.model.victory=true;dom.hud.classList.add('hidden');dom.endKicker.textContent='MODEL ERROR // PREDICTION FAILED';dom.endTitle.textContent='AI预测失败';dom.endStats.innerHTML=`击杀机器人 ${this.model.kills}<br>造成伤害 ${Math.round(this.stats.totalDamage)}<br>盾牌BLOCK ${this.stats.blockedHits} 次<br><br>中央AI：正在重新评估人类。`;dom.end.classList.remove('hidden');document.body.dataset.testStatus='victory';}
+  formatTime(t){return `${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;}
+
+  bindInput(){
+    addEventListener('keydown',e=>{this.keys.add(e.code);if(e.code==='Space'){e.preventDefault();this.useSkill();}if(e.code==='KeyD')dom.debug.classList.toggle('hidden');if(e.code==='Digit1'&&this.state==='RUNNING'){this.pendingLevels+=this.model.addXP(40);this.maybeOpenLevelUp();}if(e.code==='Digit2'&&this.state==='RUNNING')this.model.time=Math.max(this.model.time,this.model.timing.aiAnalysis-.2);if(e.code==='Digit3'&&this.state==='RUNNING')for(let i=0;i<15;i++)this.spawnEnemy(this.chooseSpawnType());if(e.code==='Digit4'&&this.state==='RUNNING')this.startBoss();});
+    addEventListener('keyup',e=>this.keys.delete(e.code));
+    dom.startBtn.onclick=()=>{dom.start.classList.add('hidden');this.resetRun();};
+    dom.restartBtn.onclick=()=>this.resetRun();dom.skillBtn.onclick=()=>this.useSkill();
+    let joyId=null,center={x:0,y:0};
+    const moveJoy=e=>{if(e.pointerId!==joyId)return;const dx=e.clientX-center.x,dy=e.clientY-center.y;const len=Math.hypot(dx,dy),max=34,k=len>max?max/len:1;const x=dx*k,y=dy*k;dom.stick.style.transform=`translate(${x}px,${y}px)`;this.joyInput.set(x/max,y/max);};
+    dom.joystick.addEventListener('pointerdown',e=>{joyId=e.pointerId;dom.joystick.setPointerCapture(e.pointerId);const r=dom.joystick.getBoundingClientRect();center={x:r.left+r.width/2,y:r.top+r.height/2};moveJoy(e);});
+    dom.joystick.addEventListener('pointermove',moveJoy);const endJoy=e=>{if(e.pointerId!==joyId)return;joyId=null;this.joyInput.set(0,0);dom.stick.style.transform='translate(0,0)';};dom.joystick.addEventListener('pointerup',endJoy);dom.joystick.addEventListener('pointercancel',endJoy);
+  }
+
+  step(dt){
+    if(this.state!=='RUNNING'||this.paused)return;
+    for(const ev of this.model.tick(dt))this.handleModelEvent(ev);
+    this.updatePlayer(dt);this.updateSpawner(dt);this.updateEnemies(dt);this.updateBoss(dt);this.updateWeapons(dt);this.updateProjectiles(dt);this.updateEnemyShots(dt);this.updatePickups(dt);this.updateEffects(dt);this.updateCamera(dt);this.updateHUD();
+  }
+
+  loop(now){const raw=Math.min(.05,(now-this.lastTime)/1000);this.lastTime=now;this.fps=Math.round(1/Math.max(raw,.001));this.step(raw);if(this.paused)this.updateEffects(raw);this.renderer.render(this.scene,this.camera);requestAnimationFrame(this.loop);}
+}
+
+const game=new Game();
+window.__GAME_TEST__={
+  state:()=>({state:game.state,phase:game.runPhase,time:game.model.time,ai:game.model.aiTriggered,counter:game.model.counterChosen,enemies:game.enemyPool.filter(e=>e.active).length,boss:!!game.boss?.active,error:document.body.dataset.error||null}),
+  start:()=>{dom.start.classList.add('hidden');game.resetRun();},
+  boss:()=>game.startBoss(),
+  restart:()=>game.resetRun(),
+  addXP:n=>{game.pendingLevels+=game.model.addXP(n);game.maybeOpenLevelUp();}
+};
