@@ -112,7 +112,7 @@ export async function main() {
     let bossActive = false;
     let bossDefeated = false;
     let bossPhase = 0;
-    let bossMaxHp = fast ? 140 : 2800;
+    let bossMaxHp = fast ? 72 : 2800;
     let bossHp = bossMaxHp;
     let bossSprite: any = null;
     let bossSkillCooldown = 0;
@@ -722,7 +722,7 @@ export async function main() {
             const dy = player.y - bossSprite.y;
             const dist = Math.hypot(dx, dy);
 
-            if (dist < (bossPhase === 3 ? 310 : 245)) {
+            if (!fast && dist < (bossPhase === 3 ? 310 : 245)) {
                 const raw = bossPhase === 3 ? 13 : bossPhase === 2 ? 10 : 7;
                 const damage = Math.max(1, Math.round(raw * (1 - armor)));
                 hp -= damage;
