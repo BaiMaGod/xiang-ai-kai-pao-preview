@@ -72,7 +72,9 @@ jobs:
               () => window.__XIANG_AI_LAYA__?.aiAnalyzed &&
                     window.__XIANG_AI_LAYA__?.shieldSpawned >= 2 &&
                     window.__XIANG_AI_LAYA__?.emergencyUpgrade === 'AP' &&
-                    window.__XIANG_AI_LAYA__?.shots > 0,
+                    window.__XIANG_AI_LAYA__?.shots > 0 &&
+                    window.__XIANG_AI_LAYA__?.xpCollected > 0 &&
+                    window.__XIANG_AI_LAYA__?.level >= 2,
               null,
               { timeout: 12000 }
             );
@@ -87,6 +89,8 @@ jobs:
             if (state.game.shieldSpawned < 2) throw new Error('Shield counter enemies did not spawn');
             if (state.game.emergencyUpgrade !== 'AP') throw new Error('Emergency protocol did not resolve');
             if (state.game.shots <= 0) throw new Error('Auto-fire did not run');
+            if (state.game.xpCollected <= 0) throw new Error('XP pickup loop did not run');
+            if (state.game.level < 2) throw new Error('Roguelike level-up loop did not run');
             if (errors.length) throw new Error(errors.join('\n'));
             await page.screenshot({ path: 'laya-v0.2-smoke.png', fullPage: true });
             await browser.close();
