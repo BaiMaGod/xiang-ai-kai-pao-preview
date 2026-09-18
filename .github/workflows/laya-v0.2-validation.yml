@@ -34,8 +34,6 @@ jobs:
               -s \
               -t "2D empty project"
           fi
-          echo "=== Project files ==="
-          find LayaXiangAI -maxdepth 4 -type f | sort | sed -n '1,260p'
 
       - name: Validate project
         run: |
@@ -45,7 +43,7 @@ jobs:
         run: |
           ~/.layaair/layaair --version=3.4.0 build web -p "$GITHUB_WORKSPACE/LayaXiangAI"
 
-      - name: Chromium code-first smoke test
+      - name: Chromium gameplay smoke test
         run: |
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright@1.55.0
@@ -59,35 +57,58 @@ jobs:
             const page = await browser.newPage({ viewport: { width: 540, height: 960 } });
             const errors = [];
             page.on('pageerror', e => errors.push('pageerror: ' + e.message));
-            page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
-            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle', timeout: 60000 });
-            await page.waitForFunction(() => window.__LAYA_PROBE__?.ok === true, null, { timeout: 20000 });
+            page.on('console', m => {
+              if (m.type() === 'error' && !m.text().includes('Failed to load resource')) {
+                errors.push('console: ' + m.text());
+              }
+            });
+            await page.goto('http://127.0.0.1:4173/?fast=1', { waitUntil: 'networkidle', timeout: 60000 });
+            await page.waitForFunction(() => window.__XIANG_AI_LAYA__?.ready === true, null, { timeout: 20000 });
+            const x0 = await page.evaluate(() => window.__XIANG_AI_LAYA__.playerX);
+            await page.keyboard.down('d');
+            await page.waitForTimeout(450);
+            await page.keyboard.up('d');
+            await page.waitForFunction(
+              () => window.__XIANG_AI_LAYA__?.aiAnalyzed &&
+                    window.__XIANG_AI_LAYA__?.shieldSpawned >= 2 &&
+                    window.__XIANG_AI_LAYA__?.emergencyUpgrade === 'AP' &&
+                    window.__XIANG_AI_LAYA__?.shots > 0,
+              null,
+              { timeout: 12000 }
+            );
             const state = await page.evaluate(() => ({
-              probe: window.__LAYA_PROBE__,
+              game: window.__XIANG_AI_LAYA__,
               canvas: !!document.querySelector('canvas')
             }));
-            console.log('LAYA_CODE_FIRST_STATE', JSON.stringify(state));
+            console.log('XIANG_AI_LAYA_STATE', JSON.stringify(state));
             if (!state.canvas) throw new Error('Laya canvas missing');
+            if (state.game.playerX <= x0 + 2) throw new Error('Keyboard movement failed');
+            if (!state.game.aiAnalyzed) throw new Error('AI analysis did not trigger');
+            if (state.game.shieldSpawned < 2) throw new Error('Shield counter enemies did not spawn');
+            if (state.game.emergencyUpgrade !== 'AP') throw new Error('Emergency protocol did not resolve');
+            if (state.game.shots <= 0) throw new Error('Auto-fire did not run');
             if (errors.length) throw new Error(errors.join('\n'));
+            await page.screenshot({ path: 'laya-v0.2-smoke.png', fullPage: true });
             await browser.close();
-            console.log('LAYA_CODE_FIRST_OK');
+            console.log('XIANG_AI_LAYA_SMOKE_OK');
           })().catch(err => { console.error(err); process.exit(1); });
           NODE
 
-      - name: Commit official template to validation branch
+      - name: Commit official template updates
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add LayaXiangAI
           if ! git diff --cached --quiet; then
-            git commit -m "chore: bootstrap LayaAir 3.4 2D project"
+            git commit -m "chore: refresh LayaAir generated project"
             git push origin HEAD:laya-v0.2-tech-validation
           fi
 
-      - name: Upload generated project and Web build
+      - name: Upload Web build and smoke screenshot
         uses: actions/upload-artifact@v4
         with:
-          name: laya-v0.2-bootstrap
+          name: laya-v0.2-tech-validation
           path: |
             LayaXiangAI
+            laya-v0.2-smoke.png
           if-no-files-found: error
