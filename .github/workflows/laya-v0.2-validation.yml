@@ -24,7 +24,7 @@ jobs:
         run: |
           curl -fsSL https://raw.githubusercontent.com/layabox/layaair-cli/master/install.sh | bash
           ~/.layaair/layaair install 3.4.0
-          ~/.layaair/layaair --version=3.4.0 --version
+          ~/.layaair/layaair --version
 
       - name: Create official 2D empty project
         run: |
