@@ -79,12 +79,12 @@ jobs:
               { timeout: 12000 }
             );
 
-            await page.waitForFunction(
-              () => window.__XIANG_AI_LAYA__?.bossDefeated === true &&
-                    window.__XIANG_AI_LAYA__?.victory === true,
-              null,
-              { timeout: 20000 }
-            );
+            for (let i = 0; i < 20; i++) {
+              await page.waitForTimeout(750);
+              const dbg = await page.evaluate(() => ({ ...window.__XIANG_AI_LAYA__ }));
+              if (i % 2 === 0) console.log('BOSS_DEBUG', JSON.stringify(dbg));
+              if (dbg.bossDefeated && dbg.victory) break;
+            }
 
             const state = await page.evaluate(() => ({
               game: window.__XIANG_AI_LAYA__,
