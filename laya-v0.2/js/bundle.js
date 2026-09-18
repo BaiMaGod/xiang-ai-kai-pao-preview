@@ -1029,7 +1029,7 @@
           if (e.shield) {
             e.sprite.rotation = Math.atan2(dy, dx) * 180 / Math.PI;
           }
-          if (len < e.radius + 20 && hurtCooldown <= 0 && e.contactCd <= 0) {
+          if (!fast && len < e.radius + 20 && hurtCooldown <= 0 && e.contactCd <= 0) {
             const raw = e.kind === "dog" ? 12 : e.kind === "shield" ? 10 : 7;
             const damage = Math.max(1, Math.round(raw * (1 - armor)));
             hp -= damage;
