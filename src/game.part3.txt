@@ -1,0 +1,110 @@
+  }
+
+  updateWeapons(dt) {
+    const p=this.player; p.gunCd-=dt; p.rpgCd-=dt; p.empCd-=dt;
+    const target=this.nearestEnemy(11);
+    const rate=4*(1+.12*p.ammoPrinter);
+    if(target && p.gunCd<=0){
+      p.gunCd=1/rate;
+      if(p.evolved){
+        const count=8; for(let i=0;i<count;i++){ const a=i/count*Math.PI*2; this.fireProjectile(new THREE.Vector3(Math.cos(a),0,Math.sin(a)),'nail'); }
+      }else{
+        const d=target.mesh.position.clone().sub(p.mesh.position); this.fireProjectile(d,'nail');
+        if(p.gunLevel>=3){ const a=Math.atan2(d.z,d.x); this.fireProjectile(new THREE.Vector3(Math.cos(a+.12),0,Math.sin(a+.12)),'nail'); }
+      }
+    }
+    if(p.rpgLevel>0 && target && p.rpgCd<=0){ p.rpgCd=Math.max(.8,1.55-.12*p.rpgLevel); this.fireProjectile(target.mesh.position.clone().sub(p.mesh.position),'rpg'); }
+    if(p.empLevel>0 && p.empCd<=0){ p.empCd=Math.max(5.5,8-p.empLevel*.7); this.releaseEMP(4+p.empLevel*.45,10+p.empLevel*4,2+p.empLevel*.25); }
+  }
+
+  releaseEMP(radius, damage, stun) {
+    const pos=this.player.mesh.position;
+    for(const e of this.enemyPool){ if(!e.active) continue; if(e.mesh.position.distanceTo(pos)<=radius){e.stun=Math.max(e.stun,stun);this.damageEnemy(e,damage,'EMP',null);} }
+    if(this.boss?.active && this.boss.mesh.position.distanceTo(pos)<=radius){ this.damageEnemy(this.boss,damage*.7,'EMP',null); this.boss.slow=Math.max(this.boss.slow||0,1.4); }
+    const ring=new THREE.Mesh(new THREE.RingGeometry(.4,.55,32),new THREE.MeshBasicMaterial({color:0x72dfff,transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false}));
+    ring.rotation.x=-Math.PI/2; ring.position.set(pos.x,.08,pos.z);this.scene.add(ring);this.effects.push({mesh:ring,t:0,d:.45,kind:'ring',max:radius});
+  }
+
+  explode(pos, radius, damage) {
+    for(const e of this.enemyPool){ if(!e.active) continue; const d=e.mesh.position.distanceTo(pos); if(d<radius) this.damageEnemy(e,damage*(1-d/radius*.35),'EXPLOSION',null); }
+    if(this.boss?.active && this.boss.mesh.position.distanceTo(pos)<radius) this.damageEnemy(this.boss,damage,'EXPLOSION',null);
+    const s=new THREE.Mesh(new THREE.SphereGeometry(.5,12,8),new THREE.MeshBasicMaterial({color:0xff9b45,transparent:true,opacity:.8,depthWrite:false}));s.position.copy(pos);s.position.y=.55;this.scene.add(s);this.effects.push({mesh:s,t:0,d:.35,kind:'blast',max:radius});
+  }
+
+  updateProjectiles(dt) {
+    for(const p of this.projectilePool){ if(!p.active) continue; p.life-=dt; if(p.life<=0){this.deactivate(p);continue;} p.mesh.position.addScaledVector(p.vel,dt);
+      let hitTarget=null;
+      if(this.boss?.active && !p.hit.has(this.boss) && p.mesh.position.distanceTo(this.boss.mesh.position)<(p.radius+1.15)) hitTarget=this.boss;
+      if(!hitTarget){ for(const e of this.enemyPool){ if(!e.active||p.hit.has(e)) continue; if(p.mesh.position.distanceTo(e.mesh.position)<p.radius+e.r){hitTarget=e;break;} } }
+      if(hitTarget){ p.hit.add(hitTarget); if(p.kind==='rpg'){this.explode(p.mesh.position.clone(),2.1,p.damage);this.deactivate(p);} else { this.damageEnemy(hitTarget,p.damage,'BULLET',p); if(p.pierce>0){p.pierce--;}else this.deactivate(p); } }
+    }
+  }
+
+  shieldBlocks(e, projectile) {
+    if(e.type!=='shield' || e.shieldDisabled>0 || !projectile) return false;
+    const forward=new THREE.Vector3(1,0,0).applyQuaternion(e.mesh.quaternion).normalize();
+    const incoming=projectile.vel.clone().normalize().multiplyScalar(-1);
+    return forward.dot(incoming) > .2;
+  }
+
+  bossBlocks(projectile) {
+    if(!this.boss || !projectile || this.boss.hp > this.boss.maxHp*.5) return false;
+    const from=this.player.mesh.position.clone().sub(this.boss.mesh.position);
+    const a=Math.atan2(from.z,from.x); let diff=Math.atan2(Math.sin(a-this.boss.shieldAngle),Math.cos(a-this.boss.shieldAngle));
+    return Math.abs(diff) < Math.PI*.34;
+  }
+
+  damageEnemy(e, amount, type, projectile) {
+    if(!e.active) return;
+    let final=amount, blocked=false;
+    if(e===this.boss && type==='BULLET' && this.bossBlocks(projectile)){ final*=.32; blocked=true; }
+    if(e.type==='shield' && type==='BULLET' && this.shieldBlocks(e,projectile)){
+      e.shieldHits++;
+      if(this.model.counterChosen==='pierce') final*=.85; else if(this.model.counterChosen==='ricochet') { final*=.35; setTimeout(()=>{if(e.active)this.damageEnemy(e,amount*.65,'BULLET',null)},30); } else final*=.35;
+      if(this.model.counterChosen==='empnail' && e.shieldHits>=5){e.shieldDisabled=2;e.shieldHits=0;}
+      blocked=true;this.stats.blockedHits++;
+    } else if(e.type==='shield' && type==='BULLET') final*=1.3;
+    e.hp-=final; this.stats.totalDamage+=final; this.model.recordDamage(type,final);
+    this.showDamage(e.mesh.position, blocked?'BLOCK':Math.round(final), blocked?'block':'hit');
+    if(e.hp<=0){ if(e===this.boss) this.win(); else this.killEnemy(e); }
+  }
+
+  killEnemy(e) {
+    const pos=e.mesh.position.clone(); this.model.kills++; this.spawnPickup(pos,e.xp); this.deactivate(e);
+  }
+
+  spawnPickup(pos,value) {
+    let p=this.pickupPool.find(x=>!x.active);
+    if(!p){const mesh=new THREE.Mesh(new THREE.OctahedronGeometry(.16,0),new THREE.MeshBasicMaterial({color:0x75d9ff}));this.scene.add(mesh);p={mesh,active:false};this.pickupPool.push(p);}
+    p.active=true;p.mesh.visible=true;p.mesh.position.set(pos.x,.25,pos.z);p.value=value;
+  }
+
+  updatePickups(dt) {
+    const pp=this.player.mesh.position;
+    for(const p of this.pickupPool){ if(!p.active) continue; p.mesh.rotation.y+=dt*3; const d=p.mesh.position.distanceTo(pp); if(d<this.player.magnet){ const dir=pp.clone().sub(p.mesh.position); p.mesh.position.addScaledVector(dir.normalize(),dt*(4+10*(1-d/this.player.magnet))); if(d<.35){ const ups=this.model.addXP(p.value);this.deactivate(p); if(ups>0){this.pendingLevels+=ups;this.maybeOpenLevelUp();} } } }
+  }
+
+  maybeOpenLevelUp() { if(this.modalState!=='NONE'||this.pendingLevels<=0||this.state!=='RUNNING') return; this.pendingLevels--; this.openUpgradeModal(); }
+
+  getUpgradePool() {
+    const p=this.player;
+    const preAI=!this.model.counterChosen;
+    const list=[
+      {id:'gun',name:'高压强化',desc:'射钉枪伤害/弹幕等级提升。',apply:()=>{p.gunLevel=Math.min(3,p.gunLevel+1)}},
+      {id:'ammo',name:'弹药打印机',desc:'射速提高；达到LV3可与射钉枪进化。',apply:()=>{p.ammoPrinter=Math.min(3,p.ammoPrinter+1)}},
+      {id:'armor',name:'外骨骼',desc:'受到的接触伤害降低。',apply:()=>{p.armor=Math.min(.42,p.armor+.1)}},
+      {id:'magnet',name:'拾取磁场',desc:'经验芯片吸附范围扩大。',apply:()=>{p.magnet+=.5}},
+      {id:'heal',name:'应急医疗',desc:'恢复30生命。',apply:()=>{p.hp=Math.min(p.maxHp,p.hp+30)}}
+    ];
+    if(!preAI && this.model.rpgUnlocked) list.push({id:'rpg',name:p.rpgLevel?'RPG强化':'解锁 RPG',desc:'周期性发射范围爆炸火箭。',apply:()=>{p.rpgLevel=Math.min(3,p.rpgLevel+1)}});
+    if(!preAI && this.model.empUnlocked) list.push({id:'emp',name:p.empLevel?'EMP强化':'解锁 EMP',desc:'周期性瘫痪附近机器人。',apply:()=>{p.empLevel=Math.min(3,p.empLevel+1)}});
+    return list;
+  }
+
+  pickOptions(pool,n=3){ const copy=[...pool],out=[]; while(copy.length&&out.length<n){out.push(copy.splice(Math.floor(Math.random()*copy.length),1)[0]);} return out; }
+
+  openUpgradeModal() {
+    this.modalState='LEVEL_UP';this.paused=true;
+    dom.kicker.textContent='LEVEL UP'; dom.title.textContent=\`LV \${this.model.level} · 选择升级\`; dom.desc.textContent='强化现有Build，或者准备新的反AI手段。';
+    this.renderChoices(this.pickOptions(this.getUpgradePool()),u=>{u.apply();this.checkEvolution();this.closeModal();});
+  }
