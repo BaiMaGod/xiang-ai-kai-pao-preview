@@ -7,7 +7,8 @@ const partUrls = [
 
 const parts = await Promise.all(
   partUrls.map(async (url) => {
-    const res = await fetch(url);
+    const resolved = new URL(url, import.meta.url);
+    const res = await fetch(resolved);
     if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`);
     return res.text();
   })
