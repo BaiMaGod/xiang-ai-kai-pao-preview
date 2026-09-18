@@ -75,7 +75,7 @@
       let nailDamage = 12;
       let fireInterval = 0.25;
       let moveSpeed = 255;
-      let pickupRadius = 95;
+      let pickupRadius = fast ? 260 : 95;
       let evolved = false;
       let levelChoiceCount = 0;
       let aiAnalyzed = false;
@@ -366,7 +366,7 @@
         s.graphics.drawCircle(0, 0, 3, "#d8f7ff");
         s.pos(x, y);
         world.addChild(s);
-        pickups.push({ sprite: s, value, life: 18 });
+        pickups.push({ sprite: s, value: fast ? value * 3 : value, life: 18 });
       }
       function addXP(value) {
         xp += value;
