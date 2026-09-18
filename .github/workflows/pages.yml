@@ -88,7 +88,10 @@ jobs:
               return start?.classList.contains('hidden') && !hud?.classList.contains('hidden');
             }, null, { timeout: 15000 });
 
-            await page.waitForTimeout(7000);
+            // Force the debug fast-forward so smoke testing does not depend on
+            // headless WebGL frame-rate / timer throttling.
+            await page.keyboard.press('Digit2');
+            await page.waitForTimeout(3000);
 
             const state = await page.evaluate(() => ({
               render: document.body.dataset.render || null,
