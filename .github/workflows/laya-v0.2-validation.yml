@@ -1,0 +1,64 @@
+name: LayaAir V0.2 tech validation
+
+on:
+  push:
+    branches: ["laya-v0.2-tech-validation"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-laya:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout validation branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install LayaAir CLI 3.4.0
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/layabox/layaair-cli/master/install.sh | bash
+          ~/.layaair/layaair install 3.4.0
+          ~/.layaair/layaair --version=3.4.0 --version
+
+      - name: Create official 2D empty project
+        run: |
+          if [ ! -f "LayaXiangAI/LayaXiangAI.laya" ]; then
+            ~/.layaair/layaair --version=3.4.0 create LayaXiangAI \
+              -p "$GITHUB_WORKSPACE" \
+              -s \
+              -t "2D empty project"
+          fi
+          echo "=== Project files ==="
+          find LayaXiangAI -maxdepth 4 -type f | sort | sed -n '1,260p'
+
+      - name: Validate project
+        run: |
+          ~/.layaair/layaair --version=3.4.0 validate -p "$GITHUB_WORKSPACE/LayaXiangAI"
+
+      - name: Build Web
+        run: |
+          ~/.layaair/layaair --version=3.4.0 build web -p "$GITHUB_WORKSPACE/LayaXiangAI"
+
+      - name: Commit official template to validation branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add LayaXiangAI
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: bootstrap LayaAir 3.4 2D project"
+            git push origin HEAD:laya-v0.2-tech-validation
+          fi
+
+      - name: Upload generated project and Web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: laya-v0.2-bootstrap
+          path: |
+            LayaXiangAI
+          if-no-files-found: error
