@@ -1,0 +1,3 @@
+向AI开炮 LayaAir Preview
+version=0.3-vertical-slice-1
+build=pickup-levelup-ai-counter
