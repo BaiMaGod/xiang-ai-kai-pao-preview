@@ -105,6 +105,6 @@
 
   openUpgradeModal() {
     this.modalState='LEVEL_UP';this.paused=true;
-    dom.kicker.textContent='LEVEL UP'; dom.title.textContent=\`LV \${this.model.level} · 选择升级\`; dom.desc.textContent='强化现有Build，或者准备新的反AI手段。';
+    dom.kicker.textContent='LEVEL UP'; dom.title.textContent=`LV ${this.model.level} · 选择升级`; dom.desc.textContent='强化现有Build，或者准备新的反AI手段。';
     this.renderChoices(this.pickOptions(this.getUpgradePool()),u=>{u.apply();this.checkEvolution();this.closeModal();});
   }
