@@ -1,0 +1,110 @@
+    this.pendingLevels=0; this.spawnSuppressed=false; this.runPhase='NORMAL'; this.modalState='NONE';
+    this.deactivateAll();
+    if (this.player?.mesh) this.scene.remove(this.player.mesh);
+    if (this.boss?.mesh) this.scene.remove(this.boss.mesh);
+    this.boss=null;
+    this.player=this.createPlayer();
+    this.camera.position.set(8,13,11);
+    this.aiShieldWeight=0;
+    dom.end.classList.add('hidden'); dom.modal.classList.add('hidden'); dom.toast.classList.add('hidden');
+    this.state='RUNNING'; this.paused=false; dom.hud.classList.remove('hidden');
+    this.updateHUD();
+    document.body.dataset.testStatus='running';
+  }
+
+  deactivateAll() {
+    for(const pool of [this.enemyPool,this.projectilePool,this.enemyShotPool,this.pickupPool]) for(const o of pool) this.deactivate(o);
+    for(const e of this.effects){ if(e.mesh) this.scene.remove(e.mesh); if(e.el) e.el.remove(); }
+    this.effects=[];
+  }
+
+  deactivate(o) { if(!o) return; o.active=false; if(o.mesh) o.mesh.visible=false; }
+
+  createEnemyMesh(type) {
+    const g=new THREE.Group();
+    if(type==='vacuum'){
+      const base=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.2,16),this.mat(0x72a5a1)); base.rotation.z=Math.PI/2; base.position.y=.25; g.add(base);
+      const eye=new THREE.Mesh(new THREE.BoxGeometry(.18,.11,.06),this.mat(0xff5f62)); eye.position.set(.43,.31,0); g.add(eye);
+    } else if(type==='courier'){
+      const box=new THREE.Mesh(new THREE.BoxGeometry(.8,.8,.75),this.mat(0xe5a742)); box.position.y=.62; g.add(box);
+      for(const x of [-.3,.3]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.1,10),this.mat(0x24292f)); wheel.rotation.z=Math.PI/2; wheel.position.set(x,.18,.33);g.add(wheel);}
+    } else if(type==='dog'){
+      const body=new THREE.Mesh(new THREE.BoxGeometry(.9,.4,.45),this.mat(0x596f82)); body.position.y=.62; g.add(body);
+      const head=new THREE.Mesh(new THREE.BoxGeometry(.38,.35,.35),this.mat(0x6f8496)); head.position.set(.58,.72,0); g.add(head);
+      for(const x of [-.3,.3]) for(const z of [-.16,.16]) {const leg=new THREE.Mesh(new THREE.BoxGeometry(.11,.48,.11),this.mat(0x303c48)); leg.position.set(x,.3,z);g.add(leg);}
+    } else if(type==='drone'){
+      const body=new THREE.Mesh(new THREE.BoxGeometry(.55,.2,.55),this.mat(0x556879)); body.position.y=1.5; g.add(body);
+      for(const x of [-.43,.43]) for(const z of [-.43,.43]){const rotor=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.035,12),this.mat(0x2d343c)); rotor.position.set(x,1.53,z);g.add(rotor);}
+      const eye=new THREE.Mesh(new THREE.SphereGeometry(.1,8,6),this.mat(0xff4c58)); eye.position.set(.3,1.43,.3);g.add(eye);
+    } else if(type==='shield'){
+      const body=new THREE.Mesh(new THREE.BoxGeometry(.52,.9,.42),this.mat(0x667684)); body.position.y=.72; g.add(body);
+      const shield=new THREE.Mesh(new THREE.BoxGeometry(.13,1.05,.95),this.mat(0x39586e,.35)); shield.position.set(.46,.75,0); g.add(shield);
+      const strip=new THREE.Mesh(new THREE.BoxGeometry(.03,.75,.65),this.mat(0xf1b34a)); strip.position.set(.535,.78,0); g.add(strip);
+    }
+    return g;
+  }
+
+  enemyStats(type) {
+    return {
+      vacuum:{hp:20,speed:2.5,damage:8,xp:1,r:.43}, courier:{hp:45,speed:1.7,damage:10,xp:2,r:.52},
+      dog:{hp:30,speed:3.2,damage:15,xp:2,r:.5}, drone:{hp:18,speed:2.3,damage:9,xp:2,r:.45},
+      shield:{hp:80,speed:2.0,damage:12,xp:3,r:.58}
+    }[type];
+  }
+
+  getEnemy(type) {
+    let e=this.enemyPool.find(x=>!x.active && x.type===type);
+    if(!e){ const mesh=this.createEnemyMesh(type); this.scene.add(mesh); e={mesh,type,active:false}; this.enemyPool.push(e); }
+    const s=this.enemyStats(type); Object.assign(e,{active:true,hp:s.hp,maxHp:s.hp,speed:s.speed,damage:s.damage,xp:s.xp,r:s.r,contactCd:0,stun:0,dashCd:2+Math.random()*1.5,dashTime:0,shootCd:1.2+Math.random(),shieldDisabled:0,shieldHits:0});
+    e.mesh.visible=true; e.mesh.scale.setScalar(1); return e;
+  }
+
+  spawnEnemy(type, angle=null, dist=null) {
+    const e=this.getEnemy(type);
+    angle ??= Math.random()*Math.PI*2; dist ??= 12+Math.random()*5;
+    const p=this.player.mesh.position; e.mesh.position.set(p.x+Math.cos(angle)*dist,0,p.z+Math.sin(angle)*dist);
+    return e;
+  }
+
+  chooseSpawnType() {
+    const t=this.model.time;
+    const r=Math.random();
+    const phase = TEST_MODE ? (t<4?0:t<8?1:2) : (t<60?0:t<90?1:t<150?2:3);
+    if(this.model.aiTriggered && Math.random() < this.aiShieldWeight) return 'shield';
+    if(phase===0) return 'vacuum';
+    if(phase===1) return r<.72?'vacuum':'courier';
+    if(phase===2) return r<.52?'vacuum':r<.76?'courier':'dog';
+    return r<.38?'vacuum':r<.60?'courier':r<.79?'dog':'drone';
+  }
+
+  updateSpawner(dt) {
+    if(this.spawnSuppressed || this.runPhase==='BOSS') return;
+    let guard=0;
+    while(guard++<12){
+      const type=this.chooseSpawnType(), cost=ENEMY_COST[type];
+      if(!this.model.spendSpawn(cost)) break;
+      this.spawnEnemy(type);
+    }
+  }
+
+  getProjectile(kind='nail') {
+    let p=this.projectilePool.find(x=>!x.active && x.kind===kind);
+    if(!p){
+      const color=kind==='rpg'?0xff9a3c:0xe8f2dc, size=kind==='rpg'?.16:.07;
+      const mesh=new THREE.Mesh(new THREE.SphereGeometry(size,7,5),new THREE.MeshBasicMaterial({color})); this.scene.add(mesh);
+      p={mesh,kind,active:false}; this.projectilePool.push(p);
+    }
+    p.active=true;p.mesh.visible=true;p.life=2.2;p.hit=new Set();return p;
+  }
+
+  fireProjectile(dir, kind='nail') {
+    const p=this.getProjectile(kind); const origin=this.player.mesh.position;
+    p.mesh.position.set(origin.x,.85,origin.z); p.vel=new THREE.Vector3(dir.x,0,dir.z).normalize().multiplyScalar(kind==='rpg'?10:18);
+    p.damage=kind==='rpg'?(40+this.player.rpgLevel*8):(12*(1+(this.player.gunLevel-1)*.3)); p.radius=kind==='rpg'?.18:.1; p.pierce=this.player.evolved?1:0;
+  }
+
+  nearestEnemy(maxRange=10) {
+    const p=this.player.mesh.position; let best=null,bd=maxRange*maxRange;
+    for(const e of this.enemyPool){ if(!e.active) continue; const d=p.distanceToSquared(e.mesh.position); if(d<bd){bd=d;best=e;} }
+    if(this.boss?.active){ const d=p.distanceToSquared(this.boss.mesh.position); if(d<bd){best=this.boss;} }
+    return best;
