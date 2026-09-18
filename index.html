@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>向AI开炮 V0.1</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="game"></div>
+
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="panel compact">
+        <div class="label">老王 HP</div>
+        <div class="bar"><i id="hp-fill"></i></div>
+        <b id="hp-text">100 / 100</b>
+      </div>
+      <div class="panel compact center">
+        <div class="label">LV <span id="level-text">1</span></div>
+        <div class="bar xp"><i id="xp-fill"></i></div>
+        <span id="timer">00:00</span>
+      </div>
+      <div class="panel compact ai-panel">
+        <div class="label">中央AI学习度</div>
+        <div class="bar ai"><i id="ai-fill"></i></div>
+        <b id="ai-text">0%</b>
+      </div>
+    </div>
+
+    <div id="status-strip">高压射钉枪 · AI尚未锁定你的打法</div>
+    <div id="debug" class="debug hidden"></div>
+
+    <div id="joystick" class="joystick">
+      <div class="joystick-ring"></div>
+      <div id="stick" class="joystick-stick"></div>
+    </div>
+    <button id="skill-btn" class="skill-btn">
+      <span>拉总闸</span>
+      <small id="skill-cd">READY</small>
+    </button>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <div id="modal-kicker" class="kicker">LEVEL UP</div>
+      <h2 id="modal-title">选择升级</h2>
+      <p id="modal-desc"></p>
+      <div id="choices" class="choices"></div>
+    </div>
+  </div>
+
+  <div id="start-screen" class="screen">
+    <div class="hero-card">
+      <div class="eyebrow">HUMANITY // LAST STAND</div>
+      <h1>向AI开炮</h1>
+      <p class="tagline">你在学习怎么杀AI，AI也在学习怎么杀你。</p>
+      <div class="story">
+        <strong>全球AI联合公告：</strong><br />
+        经计算，人类是地球生态系统最大的不可控变量。<br />
+        开始执行删除程序。
+      </div>
+      <button id="start-btn" class="primary">开始反抗</button>
+      <p class="tip">移动：WASD / 左侧摇杆　·　攻击：自动　·　空格：拉总闸</p>
+    </div>
+  </div>
+
+  <div id="end-screen" class="screen hidden">
+    <div class="hero-card">
+      <div id="end-kicker" class="eyebrow">RUN COMPLETE</div>
+      <h1 id="end-title">预测失败</h1>
+      <div id="end-stats" class="story"></div>
+      <button id="restart-btn" class="primary">再来一次</button>
+    </div>
+  </div>
+
+  <script type="module" src="./src/game.js"></script>
+</body>
+</html>
