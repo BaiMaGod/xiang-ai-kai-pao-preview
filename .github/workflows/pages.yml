@@ -128,3 +128,70 @@ jobs:
             process.exit(1);
           });
           NODE
+
+
+      - name: Open live Laya V0.2 preview
+        env:
+          PREVIEW_URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright');
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage({ viewport: { width: 540, height: 960 } });
+            const errors = [];
+
+            page.on('pageerror', err => errors.push('pageerror: ' + err.message));
+            page.on('console', msg => {
+              if (msg.type() === 'error' && !msg.text().includes('Failed to load resource')) {
+                errors.push('console: ' + msg.text());
+              }
+            });
+
+            const base = process.env.PREVIEW_URL.replace(/\/$/, '');
+            const url = base + '/laya-v0.2/?fast=1';
+            console.log('Opening Laya preview:', url);
+
+            await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+            await page.waitForFunction(
+              () => window.__XIANG_AI_LAYA__?.ready === true,
+              null,
+              { timeout: 20000 }
+            );
+
+            const x0 = await page.evaluate(() => window.__XIANG_AI_LAYA__.playerX);
+            await page.keyboard.down('d');
+            await page.waitForTimeout(450);
+            await page.keyboard.up('d');
+
+            await page.waitForFunction(
+              () => window.__XIANG_AI_LAYA__?.aiAnalyzed &&
+                    window.__XIANG_AI_LAYA__?.shieldSpawned >= 2 &&
+                    window.__XIANG_AI_LAYA__?.emergencyUpgrade === 'AP' &&
+                    window.__XIANG_AI_LAYA__?.shots > 0,
+              null,
+              { timeout: 12000 }
+            );
+
+            const state = await page.evaluate(() => ({
+              game: window.__XIANG_AI_LAYA__,
+              canvas: !!document.querySelector('canvas')
+            }));
+            console.log('Laya live state:', JSON.stringify(state, null, 2));
+
+            if (!state.canvas) throw new Error('Laya canvas missing');
+            if (state.game.playerX <= x0 + 2) throw new Error('Laya movement failed');
+            if (state.game.shots <= 0) throw new Error('Laya auto-fire failed');
+            if (!state.game.aiAnalyzed) throw new Error('Laya AI analysis failed');
+            if (state.game.shieldSpawned < 2) throw new Error('Laya shield counter failed');
+            if (state.game.emergencyUpgrade !== 'AP') throw new Error('Laya emergency protocol failed');
+            if (errors.length) throw new Error('Laya browser errors:\n' + errors.join('\n'));
+
+            await browser.close();
+            console.log('LIVE_LAYA_V0_2_SMOKE_OK');
+          })().catch(err => {
+            console.error(err);
+            process.exit(1);
+          });
+          NODE
