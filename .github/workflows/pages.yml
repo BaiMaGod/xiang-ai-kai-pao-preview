@@ -91,7 +91,18 @@ jobs:
             // Force the debug fast-forward so smoke testing does not depend on
             // headless WebGL frame-rate / timer throttling.
             await page.keyboard.press('Digit2');
-            await page.waitForTimeout(3000);
+
+            await page.waitForFunction(
+              () => window.__GAME_TEST__?.state?.()?.ai === true,
+              null,
+              { timeout: 15000 }
+            );
+
+            await page.waitForFunction(
+              () => Boolean(window.__GAME_TEST__?.state?.()?.counter),
+              null,
+              { timeout: 15000 }
+            );
 
             const state = await page.evaluate(() => ({
               render: document.body.dataset.render || null,
