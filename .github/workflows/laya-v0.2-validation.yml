@@ -96,6 +96,26 @@ jobs:
             );
             console.log('START_BUTTON_CLICK_OK');
 
+            await page.evaluate(() => {
+              window.__XIANG_AI_LAYA__.testOpenLevelUp();
+            });
+            await page.waitForSelector('#game-choice-modal[data-modal-type="LEVEL_UP"]', { state: 'visible', timeout: 5000 });
+            const upgradeCards = page.locator('#game-choice-modal .game-choice-button');
+            if (await upgradeCards.count() !== 3) {
+              throw new Error('Expected exactly 3 upgrade choices');
+            }
+            const firstChoice = await upgradeCards.first().getAttribute('data-choice-id');
+            await upgradeCards.first().click();
+            await page.waitForFunction(
+              () => !document.querySelector('#game-choice-modal') &&
+                    window.__XIANG_AI_LAYA__?.lastChoice,
+              null,
+              { timeout: 5000 }
+            );
+            const clickedChoice = await page.evaluate(() => window.__XIANG_AI_LAYA__.lastChoice);
+            console.log('UPGRADE_CHOICE_CLICK_OK', JSON.stringify({ firstChoice, clickedChoice }));
+            if (clickedChoice !== firstChoice) throw new Error('Upgrade choice click did not apply selected card');
+
             await page.goto('http://127.0.0.1:4173/?fast=1', { waitUntil: 'networkidle', timeout: 60000 });
             await page.waitForFunction(() => window.__XIANG_AI_LAYA__?.ready === true, null, { timeout: 20000 });
             const x0 = await page.evaluate(() => window.__XIANG_AI_LAYA__.playerX);
