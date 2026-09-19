@@ -231,6 +231,32 @@ jobs:
             if (state.game.emergencyUpgrade !== 'AP') throw new Error('Laya emergency protocol failed');
             if (state.game.xpCollected <= 0 || state.game.level < 2) throw new Error('Laya XP/level-up loop failed');
             if (!state.game.bossDefeated || !state.game.victory) throw new Error('Laya GPT-0 victory flow failed');
+
+            await page.waitForSelector('#game-choice-modal[data-modal-type="VICTORY"]', { state: 'visible', timeout: 5000 });
+            const victoryButtons = page.locator('#game-choice-modal .game-choice-button');
+            if (await victoryButtons.count() !== 1) throw new Error('Live victory screen must expose one restart action');
+            await victoryButtons.first().click();
+
+            await page.waitForFunction(
+              () => window.__XIANG_AI_LAYA__?.running === true &&
+                    window.__XIANG_AI_LAYA__?.victory === false &&
+                    window.__XIANG_AI_LAYA__?.bossDefeated === false &&
+                    window.__XIANG_AI_LAYA__?.level === 1 &&
+                    window.__XIANG_AI_LAYA__?.kills === 0 &&
+                    !document.querySelector('#game-choice-modal'),
+              null,
+              { timeout: 5000 }
+            );
+
+            const restarted = await page.evaluate(() => ({
+              level: window.__XIANG_AI_LAYA__.level,
+              kills: window.__XIANG_AI_LAYA__.kills,
+              victory: window.__XIANG_AI_LAYA__.victory,
+              bossDefeated: window.__XIANG_AI_LAYA__.bossDefeated,
+              running: window.__XIANG_AI_LAYA__.running
+            }));
+            console.log('LIVE_LAYA_VICTORY_RESTART_OK', JSON.stringify(restarted));
+
             if (errors.length) throw new Error('Laya browser errors:\n' + errors.join('\n'));
 
             await browser.close();
