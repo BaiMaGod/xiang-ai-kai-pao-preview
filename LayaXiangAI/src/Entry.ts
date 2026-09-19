@@ -342,13 +342,16 @@ export async function main() {
         const button = new Laya.Sprite();
         button.name = "StartResistanceButton";
         button.pos(bx, by);
-        button.graphics.drawRoundRect(0, 0, bw, 72, 20, "#58e8c9");
-        button.graphics.drawRoundRect(3, 3, bw - 6, 66, 17, "#32cdb0");
-        button.graphics.drawRoundRect(8, 8, bw - 16, 56, 14, "#57e3c6");
+        button.size(bw, 72);
+        button.hitArea = new Laya.Rectangle(0, 0, bw, 72);
+        button.alpha = 1;
+        button.zOrder = 1000;
+        button.graphics.drawRect(0, 0, bw, 72, "#45E0BD", "#D9FFF6", 4);
+        button.graphics.drawRect(7, 7, bw - 14, 58, "#62F0CF");
         button.mouseEnabled = true;
         startLayer.addChild(button);
 
-        const bt = makeText("开始反抗", 26, "#06151b", true);
+        const bt = makeText("▶  开始反抗", 26, "#05191A", true);
         bt.width = bw;
         bt.height = 72;
         bt.align = "center";
@@ -356,30 +359,43 @@ export async function main() {
         bt.mouseEnabled = false;
         button.addChild(bt);
 
-        const hint = makeText("点击这里开始游戏", 15, "#8fa9b9", true);
+        const hint = makeText("点击按钮 / 按 Enter 或 Space 开始", 15, "#C5D7E1", true);
         hint.width = bw;
         hint.align = "center";
-        hint.pos(bx, by + 84);
+        hint.pos(bx, by + 86);
         startLayer.addChild(hint);
 
         const startGame = () => {
+            if (gameStarted) return;
             startLayer.removeChildren();
             gameStarted = true;
             paused = false;
             probe.running = true;
+            probe.startScreen = false;
             flash("老王：智能是吧？先交物业费。", "#ffd77b");
         };
 
+        probe.startScreen = true;
+        probe.startButton = { x: bx, y: by, width: bw, height: 72 };
+
         button.on(Laya.Event.MOUSE_DOWN, null, () => {
-            button.scale(0.97, 0.97);
+            button.alpha = 0.78;
         });
         button.on(Laya.Event.MOUSE_UP, null, () => {
-            button.scale(1, 1);
+            button.alpha = 1;
         });
         button.on(Laya.Event.MOUSE_OUT, null, () => {
-            button.scale(1, 1);
+            button.alpha = 1;
         });
         button.on(Laya.Event.CLICK, null, startGame);
+
+        const keyboardStart = (ev: any) => {
+            const key = String(ev.key || "").toLowerCase();
+            if (!gameStarted && (key === "enter" || key === " " || key === "spacebar")) {
+                startGame();
+            }
+        };
+        win.addEventListener("keydown", keyboardStart);
     }
 
     function requiredXP(lv: number) {
