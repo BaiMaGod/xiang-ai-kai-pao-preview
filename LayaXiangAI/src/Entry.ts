@@ -75,6 +75,7 @@ export async function main() {
 
     let gameStarted = fast;
     let startGameAction: (() => void) | null = null;
+    let webStartButton: any = null;
     let gameOver = false;
     let paused = !gameStarted;
     let dragging = false;
@@ -373,6 +374,10 @@ export async function main() {
             startLayer.offAll();
             startLayer.removeChildren();
             startGameAction = null;
+            if (webStartButton) {
+                webStartButton.remove();
+                webStartButton = null;
+            }
             gameStarted = true;
             paused = false;
             probe.running = true;
@@ -383,6 +388,48 @@ export async function main() {
         startGameAction = startGame;
         probe.startScreen = true;
         probe.startButton = { x: bx, y: by, width: bw, height: 72 };
+
+        // Web preview: use a real DOM button above the Canvas.
+        // Mini-game runtimes normally do not expose document, so they keep
+        // using Laya's native stage/touch path below.
+        const doc: any = (win as any).document;
+        if (doc?.body) {
+            const domBtn = doc.createElement("button");
+            domBtn.id = "start-game-dom";
+            domBtn.type = "button";
+            domBtn.textContent = "▶  开始反抗";
+            domBtn.setAttribute("aria-label", "开始反抗");
+            domBtn.style.position = "fixed";
+            domBtn.style.left = "50%";
+            domBtn.style.top = "69%";
+            domBtn.style.transform = "translate(-50%, -50%)";
+            domBtn.style.width = "min(360px, calc(100vw - 70px))";
+            domBtn.style.height = "72px";
+            domBtn.style.border = "4px solid #D9FFF6";
+            domBtn.style.borderRadius = "18px";
+            domBtn.style.background = "#58E8C9";
+            domBtn.style.color = "#06191A";
+            domBtn.style.fontSize = "26px";
+            domBtn.style.fontWeight = "800";
+            domBtn.style.fontFamily = "Arial, sans-serif";
+            domBtn.style.cursor = "pointer";
+            domBtn.style.zIndex = "2147483647";
+            domBtn.style.boxShadow = "0 0 0 6px rgba(88,232,201,.14)";
+            domBtn.style.touchAction = "manipulation";
+            domBtn.addEventListener("pointerdown", () => {
+                domBtn.style.transform = "translate(-50%, -50%) scale(.97)";
+            });
+            domBtn.addEventListener("pointerup", () => {
+                domBtn.style.transform = "translate(-50%, -50%) scale(1)";
+            });
+            domBtn.addEventListener("pointercancel", () => {
+                domBtn.style.transform = "translate(-50%, -50%) scale(1)";
+            });
+            domBtn.addEventListener("click", startGame);
+            doc.body.appendChild(domBtn);
+            webStartButton = domBtn;
+            probe.webStartButton = true;
+        }
 
         // The start screen is a modal: make the whole screen tappable.
         // This avoids engine hit-test differences between desktop Web,
