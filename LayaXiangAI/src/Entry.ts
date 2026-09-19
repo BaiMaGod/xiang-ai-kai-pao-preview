@@ -76,6 +76,7 @@ export async function main() {
     let gameStarted = fast;
     let startGameAction: (() => void) | null = null;
     let webStartButton: any = null;
+    let webModalOverlay: any = null;
     let gameOver = false;
     let paused = !gameStarted;
     let dragging = false;
@@ -618,6 +619,126 @@ export async function main() {
         return id;
     }
 
+    function clearWebModal() {
+        if (webModalOverlay) {
+            webModalOverlay.remove();
+            webModalOverlay = null;
+        }
+        probe.modalType = "";
+    }
+
+    function showWebChoiceModal(
+        type: string,
+        title: string,
+        subtitle: string,
+        choices: { id: string; name: string; desc: string; accent?: string }[],
+        onChoose: (id: string) => void
+    ) {
+        const doc: any = (win as any).document;
+        if (!doc?.body) return false;
+
+        clearWebModal();
+
+        const overlay = doc.createElement("div");
+        overlay.id = "game-choice-modal";
+        overlay.dataset.modalType = type;
+        overlay.style.position = "fixed";
+        overlay.style.inset = "0";
+        overlay.style.display = "flex";
+        overlay.style.alignItems = "center";
+        overlay.style.justifyContent = "center";
+        overlay.style.padding = "20px";
+        overlay.style.boxSizing = "border-box";
+        overlay.style.background = "rgba(2,7,13,.86)";
+        overlay.style.zIndex = "2147483646";
+        overlay.style.fontFamily = "Arial, sans-serif";
+        overlay.style.userSelect = "none";
+        overlay.style.touchAction = "manipulation";
+
+        const panel = doc.createElement("div");
+        panel.style.width = "min(500px, calc(100vw - 34px))";
+        panel.style.padding = "26px 22px 22px";
+        panel.style.boxSizing = "border-box";
+        panel.style.border = "2px solid rgba(116,235,213,.34)";
+        panel.style.borderRadius = "24px";
+        panel.style.background = "linear-gradient(180deg,#10283a 0%,#091521 100%)";
+        panel.style.boxShadow = "0 20px 80px rgba(0,0,0,.55)";
+        overlay.appendChild(panel);
+
+        const h = doc.createElement("div");
+        h.textContent = title;
+        h.style.color = "#FFFFFF";
+        h.style.fontSize = "30px";
+        h.style.fontWeight = "800";
+        h.style.textAlign = "center";
+        panel.appendChild(h);
+
+        if (subtitle) {
+            const sub = doc.createElement("div");
+            sub.textContent = subtitle;
+            sub.style.color = "#9FB5C5";
+            sub.style.fontSize = "16px";
+            sub.style.lineHeight = "1.45";
+            sub.style.textAlign = "center";
+            sub.style.margin = "10px 0 20px";
+            panel.appendChild(sub);
+        }
+
+        const list = doc.createElement("div");
+        list.style.display = "grid";
+        list.style.gap = "12px";
+        panel.appendChild(list);
+
+        choices.forEach((choice: any, index: number) => {
+            const b = doc.createElement("button");
+            b.type = "button";
+            b.className = "game-choice-button";
+            b.dataset.choiceId = choice.id;
+            b.style.width = "100%";
+            b.style.minHeight = "78px";
+            b.style.padding = "12px 16px 12px 20px";
+            b.style.boxSizing = "border-box";
+            b.style.border = "2px solid #28536C";
+            b.style.borderLeft = "7px solid " + (choice.accent || "#58E8C9");
+            b.style.borderRadius = "14px";
+            b.style.background = "#17344A";
+            b.style.color = "#FFFFFF";
+            b.style.textAlign = "left";
+            b.style.cursor = "pointer";
+            b.style.touchAction = "manipulation";
+
+            const name = doc.createElement("div");
+            name.textContent = (index + 1) + ". " + choice.name;
+            name.style.fontSize = "20px";
+            name.style.fontWeight = "800";
+            b.appendChild(name);
+
+            const desc = doc.createElement("div");
+            desc.textContent = choice.desc;
+            desc.style.color = "#A9BECC";
+            desc.style.fontSize = "15px";
+            desc.style.marginTop = "6px";
+            b.appendChild(desc);
+
+            b.addEventListener("pointerdown", () => {
+                b.style.transform = "scale(.985)";
+                b.style.background = "#20506B";
+            });
+            b.addEventListener("pointerup", () => {
+                b.style.transform = "scale(1)";
+                b.style.background = "#17344A";
+            });
+            b.addEventListener("click", () => onChoose(choice.id));
+            list.appendChild(b);
+        });
+
+        doc.body.appendChild(overlay);
+        webModalOverlay = overlay;
+        probe.modalType = type;
+        probe.modalChoices = choices.map((x: any) => x.id);
+        return true;
+    }
+
     function openLevelUp() {
         if (pendingLevelUps <= 0 || gameOver) return;
         pendingLevelUps--;
@@ -631,6 +752,27 @@ export async function main() {
         }
 
         modalLayer.removeChildren();
+        const options = pickBuildOptions();
+
+        const finishChoice = (id: BuildKind) => {
+            applyBuild(id);
+            probe.lastChoice = id;
+            clearWebModal();
+            modalLayer.removeChildren();
+            paused = false;
+            if (pendingLevelUps > 0) openLevelUp();
+        };
+
+        if (showWebChoiceModal(
+            "LEVEL_UP",
+            "LV." + level + " · 选择升级",
+            "选择一个强化。战斗在你做出选择前会暂停。",
+            options.map(o => ({ id: o.id, name: o.name, desc: o.desc, accent: "#58E8C9" })),
+            (id) => finishChoice(id as BuildKind)
+        )) {
+            return;
+        }
+
         const shade = new Laya.Sprite();
         shade.graphics.drawRect(0, 0, W, H, "#02070dcc");
         modalLayer.addChild(shade);
@@ -651,30 +793,36 @@ export async function main() {
         h.pos(px, py + 28);
         modalLayer.addChild(h);
 
-        const options = pickBuildOptions();
         options.forEach((o, i) => {
             const by = py + 91 + i * 91;
             const b = new Laya.Sprite();
-            b.graphics.drawRoundRect(px + 28, by, panelW - 56, 72, 14, "#17344a");
+            b.pos(px + 28, by);
+            b.size(panelW - 56, 72);
+            b.hitArea = new Laya.Rectangle(0, 0, panelW - 56, 72);
+            b.graphics.drawRoundRect(0, 0, panelW - 56, 72, 14, "#17344a");
             b.mouseEnabled = true;
             modalLayer.addChild(b);
 
             const name = makeText(o.name, 20, "#ffffff", true);
             name.pos(px + 47, by + 12);
+            name.mouseEnabled = false;
             modalLayer.addChild(name);
 
             const desc = makeText(o.desc, 15, "#9fb5c5");
             desc.pos(px + 47, by + 42);
+            desc.mouseEnabled = false;
             modalLayer.addChild(desc);
 
-            b.on(Laya.Event.CLICK, null, () => {
-                applyBuild(o.id);
-                modalLayer.removeChildren();
-                paused = false;
-                if (pendingLevelUps > 0) openLevelUp();
-            });
+            b.on(Laya.Event.CLICK, null, () => finishChoice(o.id));
         });
     }
+
+    probe.testOpenLevelUp = () => {
+        if (!gameStarted || gameOver) return false;
+        pendingLevelUps++;
+        openLevelUp();
+        return true;
+    };
 
     function fireBullet(dx: number, dy: number) {
         const len = Math.max(0.001, Math.hypot(dx, dy));
@@ -900,6 +1048,7 @@ export async function main() {
 
     function showVictory() {
         paused = true;
+        clearWebModal();
         modalLayer.removeChildren();
 
         const shade = new Laya.Sprite();
@@ -970,7 +1119,9 @@ export async function main() {
     function chooseEmergency(kind: CounterKind) {
         emergencyCounter = kind;
         paused = false;
+        clearWebModal();
         modalLayer.removeChildren();
+        probe.lastChoice = kind;
 
         if (kind === "AP") flash("人类应急协议：穿甲钉已装填", "#ffd77b");
         if (kind === "RICOCHET") flash("人类应急协议：跳射弹头上线", "#ffd77b");
@@ -1022,6 +1173,25 @@ export async function main() {
             ["EMP", "EMP 钉", "每 4 发瘫痪盾卫 1.1 秒"]
         ];
 
+        if (showWebChoiceModal(
+            "EMERGENCY",
+            "人类应急协议",
+            "AI 已部署盾卫。选一个办法拆掉它的防御。",
+            choices.map(x => ({
+                id: x[0],
+                name: x[1],
+                desc: x[2],
+                accent: x[0] === "EMP" ? "#69E8FF" : "#FFD77B"
+            })),
+            (id) => {
+                clearWebModal();
+                chooseEmergency(id as CounterKind);
+            }
+        )) {
+            modalLayer.removeChildren();
+            return;
+        }
+
         choices.forEach((c, i) => {
             const by = py + 119 + i * 79;
             const b = new Laya.Sprite();
@@ -1045,6 +1215,7 @@ export async function main() {
         if (gameOver) return;
         gameOver = true;
         paused = true;
+        clearWebModal();
         modalLayer.removeChildren();
 
         const shade = new Laya.Sprite();
@@ -1084,6 +1255,7 @@ export async function main() {
 
     function restart() {
         clearEntities();
+        clearWebModal();
         modalLayer.removeChildren();
         hp = 100;
         maxHp = 100;
