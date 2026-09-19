@@ -4,6 +4,8 @@ type BuildKind = "NAIL" | "PRINTER" | "MAGNET" | "EXO";
 
 interface Enemy {
     sprite: any;
+    art: any;
+    shadow: any;
     kind: EnemyKind;
     hp: number;
     maxHp: number;
@@ -12,6 +14,13 @@ interface Enemy {
     shield: boolean;
     stunned: number;
     contactCd: number;
+    animTime: number;
+    wheelL?: any;
+    wheelR?: any;
+    rotor?: any;
+    legA?: any;
+    legB?: any;
+    glow?: any;
 }
 
 interface Bullet {
@@ -54,6 +63,17 @@ export async function main() {
         hit: "resources/art/v1/fx_hit.png"
     };
 
+    const artUrls = Object.values(ART);
+    const artLoadFailures: string[] = [];
+    try {
+        await Laya.loader.load(artUrls);
+    } catch (err) {
+        console.warn("V1 art preload reported an error", err);
+    }
+    for (const url of artUrls) {
+        if (!Laya.loader.getRes(url)) artLoadFailures.push(url);
+    }
+
     stage.bgColor = "#08111c";
     stage.scaleMode = Laya.Stage.SCALE_FIXED_AUTO;
     stage.alignH = Laya.Stage.ALIGN_CENTER;
@@ -71,7 +91,7 @@ export async function main() {
     drawWorld();
 
     const player = new Laya.Sprite();
-    drawPlayer(player);
+    const playerVisual = drawPlayer(player);
     player.pos(W * 0.5, H * 0.58);
     world.addChild(player);
 
@@ -111,6 +131,8 @@ export async function main() {
     let fireCooldown = 0;
     let spawnBudget = 0;
     let maxEnemiesSeen = 0;
+    let playerWalkPhase = 0;
+    let playerRecoil = 0;
 
     let nailLevel = 1;
     let printerLevel = 0;
@@ -158,8 +180,10 @@ export async function main() {
         stageHeight: H,
         engine: "LayaAir",
         engineVersion: "3.4.0",
-        version: "0.5.0-art-pass-1",
+        version: "0.5.1-dynamic-art-pass",
         artVersion: "v1",
+        animationVersion: "procedural-v1",
+        artLoadFailures,
         codeFirst: true,
         fast,
         playerX: player.x,
@@ -211,14 +235,53 @@ export async function main() {
         offsetY = 0
     ) {
         const art = new Laya.Sprite();
-        art.loadImage(url);
+        const sx = targetW / sourceW;
+        const sy = targetH / sourceH;
+        const ready = !!Laya.loader.getRes(url);
+
         art.size(sourceW, sourceH);
         art.pivot(sourceW * 0.5, sourceH * 0.5);
         art.pos(offsetX, offsetY);
-        art.scale(targetW / sourceW, targetH / sourceH);
+        art.scale(sx, sy);
         art.mouseEnabled = false;
+        (art as any).__baseScaleX = sx;
+        (art as any).__baseScaleY = sy;
+        (art as any).__artReady = ready;
+
+        if (ready) {
+            art.loadImage(url);
+        } else {
+            // Never leave an unexplained shadow-only enemy on screen.
+            art.graphics.drawRoundRect(16, 16, sourceW - 32, sourceH - 32, 14, "#8a1f2e", "#ff7788", 4);
+            art.graphics.drawCircle(sourceW * 0.5, sourceH * 0.5, Math.min(sourceW, sourceH) * 0.18, "#ffcf5a");
+            art.graphics.drawLine(sourceW * 0.5, sourceH * 0.38, sourceW * 0.5, sourceH * 0.57, "#381018", 7);
+            art.graphics.drawCircle(sourceW * 0.5, sourceH * 0.68, 4, "#381018");
+        }
+
         parent.addChild(art);
         return art;
+    }
+
+    function makeWheel(parent: any, x: number, y: number, radius = 7) {
+        const w = new Laya.Sprite();
+        w.pos(x, y);
+        w.graphics.drawCircle(0, 0, radius, "#101820", "#657a8d", 2);
+        w.graphics.drawLine(-radius + 2, 0, radius - 2, 0, "#b8c7d2", 2);
+        w.graphics.drawLine(0, -radius + 2, 0, radius - 2, "#b8c7d2", 2);
+        w.mouseEnabled = false;
+        parent.addChild(w);
+        return w;
+    }
+
+    function makeLeg(parent: any, x: number, y: number) {
+        const leg = new Laya.Sprite();
+        leg.pos(x, y);
+        leg.graphics.drawRoundRect(-3, 0, 6, 19, 3, "#506577");
+        leg.graphics.drawCircle(0, 18, 4, "#182633");
+        leg.pivot(0, 2);
+        leg.mouseEnabled = false;
+        parent.addChild(leg);
+        return leg;
     }
 
     function spawnHitFx(x: number, y: number) {
@@ -270,12 +333,14 @@ export async function main() {
         shadow.mouseEnabled = false;
         s.addChild(shadow);
 
-        attachArt(s, ART.player, 160, 180, 78, 88, 0, -7);
+        const art = attachArt(s, ART.player, 160, 180, 78, 88, 0, -7);
 
         const ring = new Laya.Sprite();
         ring.graphics.drawCircle(0, 26, 29, null, "#41e7e0aa", 2);
         ring.mouseEnabled = false;
         s.addChildAt(ring, 0);
+
+        return { art, shadow, ring };
     }
 
     function createUI() {
@@ -549,15 +614,52 @@ export async function main() {
         shadow.mouseEnabled = false;
         s.addChild(shadow);
 
+        let art: any;
+        let wheelL: any = null;
+        let wheelR: any = null;
+        let rotor: any = null;
+        let legA: any = null;
+        let legB: any = null;
+        let glow: any = null;
+
         if (kind === "vacuum") {
-            attachArt(s, ART.vacuum, 128, 128, 58, 58, 0, -5);
+            rotor = new Laya.Sprite();
+            rotor.pos(0, 11);
+            rotor.graphics.drawCircle(0, 0, 15, "#0c1720", "#58d7e9", 2);
+            rotor.graphics.drawLine(-12, 0, 12, 0, "#77ecff", 2);
+            rotor.graphics.drawLine(0, -12, 0, 12, "#77ecff", 2);
+            rotor.mouseEnabled = false;
+            s.addChild(rotor);
+            art = attachArt(s, ART.vacuum, 128, 128, 58, 58, 0, -5);
         } else if (kind === "delivery") {
-            attachArt(s, ART.delivery, 132, 128, 62, 60, 0, -5);
+            wheelL = makeWheel(s, -17, 13, 7);
+            wheelR = makeWheel(s, 17, 13, 7);
+            art = attachArt(s, ART.delivery, 132, 128, 62, 60, 0, -5);
+
+            glow = new Laya.Sprite();
+            glow.pos(0, -22);
+            glow.graphics.drawCircle(0, 0, 4, "#ff334e");
+            glow.graphics.drawCircle(0, 0, 8, "#ff334e33");
+            glow.mouseEnabled = false;
+            s.addChild(glow);
         } else if (kind === "dog") {
-            attachArt(s, ART.dog, 148, 128, 70, 61, 0, -6);
+            legA = makeLeg(s, -14, 7);
+            legB = makeLeg(s, 14, 7);
+            art = attachArt(s, ART.dog, 148, 128, 70, 61, 0, -8);
         } else {
-            attachArt(s, ART.shield, 102, 120, 66, 78, 0, -8);
+            glow = new Laya.Sprite();
+            glow.graphics.drawCircle(-24, -1, 24, "#47d8ff16", "#65ddff66", 2);
+            glow.mouseEnabled = false;
+            s.addChild(glow);
+            art = attachArt(s, ART.shield, 102, 120, 66, 78, 0, -8);
         }
+
+        const ready = !!(art as any).__artReady;
+        shadow.visible = ready;
+        if (!ready) {
+            console.warn("Enemy art fallback:", kind);
+        }
+
         s.pos(x, y);
         world.addChild(s);
 
@@ -569,9 +671,10 @@ export async function main() {
         };
         const d = data[kind];
         return {
-            sprite: s, kind, hp: d[0], maxHp: d[0],
+            sprite: s, art, shadow, kind, hp: d[0], maxHp: d[0],
             speed: d[1], radius: d[2], shield: kind === "shield",
-            stunned: 0, contactCd: 0
+            stunned: 0, contactCd: 0, animTime: Math.random() * Math.PI * 2,
+            wheelL, wheelR, rotor, legA, legB, glow
         };
     }
 
@@ -895,6 +998,7 @@ export async function main() {
             flashFx.destroy();
         });
 
+        playerRecoil = 1;
         shots++;
         bullets.push({
             sprite: s,
@@ -1444,9 +1548,41 @@ export async function main() {
         }
 
         const ml = Math.hypot(mx, my);
+        playerRecoil = Math.max(0, playerRecoil - dt * 9.5);
+
+        const art = playerVisual.art;
+        const baseSX = Math.abs((art as any).__baseScaleX || 1);
+        const baseSY = (art as any).__baseScaleY || 1;
+
         if (ml > 0) {
-            player.x += mx / ml * moveSpeed * dt;
-            player.y += my / ml * moveSpeed * dt;
+            const nx = mx / ml;
+            const ny = my / ml;
+            player.x += nx * moveSpeed * dt;
+            player.y += ny * moveSpeed * dt;
+
+            playerWalkPhase += dt * 11.5;
+            const step = Math.sin(playerWalkPhase);
+            const lift = Math.abs(Math.sin(playerWalkPhase * 0.5));
+
+            art.y = -7 - lift * 2.8;
+            art.rotation = step * 2.6 - playerRecoil * 2.2;
+            art.scaleX = nx < -0.08 ? -baseSX : nx > 0.08 ? baseSX : art.scaleX;
+            art.scaleY = baseSY * (1 + lift * 0.018);
+            playerVisual.shadow.scaleX = 1 - lift * 0.07;
+            playerVisual.shadow.scaleY = 1 - lift * 0.05;
+            playerVisual.ring.alpha = 0.62 + lift * 0.30;
+        } else {
+            playerWalkPhase += dt * 2.4;
+            art.y = -7 + Math.sin(playerWalkPhase) * 0.7;
+            art.rotation *= Math.max(0, 1 - dt * 12);
+            art.scaleY = baseSY;
+            playerVisual.shadow.scaleX = 1;
+            playerVisual.shadow.scaleY = 1;
+            playerVisual.ring.alpha = 0.72 + Math.sin(playerWalkPhase) * 0.08;
+        }
+
+        if (playerRecoil > 0) {
+            art.y += playerRecoil * 1.8;
         }
 
         player.x = Math.max(margin, Math.min(W - margin, player.x));
@@ -1533,10 +1669,12 @@ export async function main() {
         for (let i = enemies.length - 1; i >= 0; i--) {
             const e = enemies[i];
             e.contactCd -= dt;
+            e.animTime += dt;
 
             if (e.stunned > 0) {
                 e.stunned -= dt;
                 e.sprite.alpha = 0.58;
+                if (e.glow) e.glow.alpha = 0.25 + Math.sin(e.animTime * 18) * 0.15;
                 continue;
             }
 
@@ -1544,12 +1682,51 @@ export async function main() {
             const dx = player.x - e.sprite.x;
             const dy = player.y - e.sprite.y;
             const len = Math.max(0.001, Math.hypot(dx, dy));
+            const nx = dx / len;
+            const ny = dy / len;
 
-            e.sprite.x += dx / len * e.speed * dt;
-            e.sprite.y += dy / len * e.speed * dt;
+            e.sprite.x += nx * e.speed * dt;
+            e.sprite.y += ny * e.speed * dt;
 
-            if (e.shield) {
-                e.sprite.rotation = Math.atan2(dy, dx) * 180 / Math.PI;
+            const art = e.art;
+            const baseSX = Math.abs((art as any).__baseScaleX || 1);
+            const baseSY = (art as any).__baseScaleY || 1;
+
+            if (e.kind !== "shield") {
+                art.scaleX = nx < -0.08 ? -baseSX : nx > 0.08 ? baseSX : art.scaleX;
+            }
+
+            if (e.kind === "vacuum") {
+                if (e.rotor) e.rotor.rotation += 430 * dt;
+                art.y = -5 + Math.sin(e.animTime * 7) * 0.8;
+                art.rotation = Math.sin(e.animTime * 5.5) * 1.2;
+                e.shadow.scaleX = 1 + Math.sin(e.animTime * 7) * 0.025;
+            } else if (e.kind === "delivery") {
+                const wheelSpin = e.speed * dt * 8.5;
+                if (e.wheelL) e.wheelL.rotation += wheelSpin;
+                if (e.wheelR) e.wheelR.rotation += wheelSpin;
+                const bump = Math.abs(Math.sin(e.animTime * 10));
+                art.y = -5 - bump * 1.4;
+                art.rotation = Math.sin(e.animTime * 8) * 0.9;
+                e.shadow.scaleX = 1 - bump * 0.035;
+                if (e.glow) e.glow.alpha = 0.45 + (Math.sin(e.animTime * 8) * 0.5 + 0.5) * 0.55;
+            } else if (e.kind === "dog") {
+                const stride = Math.sin(e.animTime * 14);
+                if (e.legA) e.legA.rotation = stride * 28;
+                if (e.legB) e.legB.rotation = -stride * 28;
+                const lift = Math.abs(Math.sin(e.animTime * 7));
+                art.y = -8 - lift * 2.3;
+                art.rotation = stride * 1.5;
+                e.shadow.scaleX = 1 - lift * 0.06;
+            } else {
+                const heavyStep = Math.abs(Math.sin(e.animTime * 4.4));
+                art.y = -8 - heavyStep * 1.4;
+                art.rotation = Math.atan2(ny, nx) * 180 / Math.PI;
+                if (e.glow) {
+                    e.glow.alpha = 0.34 + (Math.sin(e.animTime * 3.7) * 0.5 + 0.5) * 0.34;
+                    e.glow.scaleX = 0.96 + heavyStep * 0.06;
+                    e.glow.scaleY = 0.96 + heavyStep * 0.06;
+                }
             }
 
             if (!fast && len < e.radius + 20 && hurtCooldown <= 0 && e.contactCd <= 0) {
@@ -1558,8 +1735,8 @@ export async function main() {
                 hp -= damage;
                 hurtCooldown = 0.42;
                 e.contactCd = 0.58;
-                e.sprite.x -= dx / len * 30;
-                e.sprite.y -= dy / len * 30;
+                e.sprite.x -= nx * 30;
+                e.sprite.y -= ny * 30;
                 flash("-" + damage + " HP", "#ff7182");
                 if (hp <= 0) gameOverScreen();
             }
@@ -1665,6 +1842,8 @@ export async function main() {
         probe.bossDefeated = bossDefeated;
         probe.victory = victory;
         probe.running = gameStarted && !gameOver && !victory;
+        probe.artLoadFailures = artLoadFailures;
+        probe.animatedEnemies = enemies.filter(e => !!e.art).length;
         probe.elapsed = elapsed;
     }
 
