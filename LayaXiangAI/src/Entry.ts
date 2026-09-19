@@ -1051,6 +1051,30 @@ export async function main() {
         clearWebModal();
         modalLayer.removeChildren();
 
+        const victorySummary =
+            "生存 " + Math.floor(elapsed) + " 秒 · 击毁 " + kills + " · LV." + level +
+            " · 获得 AI Core ×10";
+
+        if (showWebChoiceModal(
+            "VICTORY",
+            "GPT-0 已击破",
+            victorySummary + "。第一章：智慧社区 · 暂时安全。",
+            [
+                {
+                    id: "RESTART",
+                    name: "再来一局",
+                    desc: "从 LV.1 重新开始第一章",
+                    accent: "#72F5D0"
+                }
+            ],
+            () => {
+                clearWebModal();
+                restart();
+            }
+        )) {
+            return;
+        }
+
         const shade = new Laya.Sprite();
         shade.graphics.drawRect(0, 0, W, H, "#02070de8");
         modalLayer.addChild(shade);
@@ -1082,6 +1106,27 @@ export async function main() {
         sub.align = "center";
         sub.pos(0, H * 0.54);
         modalLayer.addChild(sub);
+
+        const bw = Math.min(340, W - 80);
+        const bx = (W - bw) * 0.5;
+        const by = H * 0.64;
+        const retry = new Laya.Sprite();
+        retry.pos(bx, by);
+        retry.size(bw, 68);
+        retry.hitArea = new Laya.Rectangle(0, 0, bw, 68);
+        retry.graphics.drawRoundRect(0, 0, bw, 68, 18, "#58E8C9");
+        retry.mouseEnabled = true;
+        modalLayer.addChild(retry);
+
+        const retryText = makeText("再来一局", 24, "#06191A", true);
+        retryText.width = bw;
+        retryText.height = 68;
+        retryText.align = "center";
+        retryText.valign = "middle";
+        retryText.mouseEnabled = false;
+        retry.addChild(retryText);
+
+        retry.on(Laya.Event.CLICK, null, restart);
     }
 
     function showFloat(text: string, x: number, y: number, color: string) {
@@ -1279,7 +1324,7 @@ export async function main() {
         nailDamage = 12;
         fireInterval = 0.25;
         moveSpeed = 255;
-        pickupRadius = 95;
+        pickupRadius = fast ? 260 : 95;
         evolved = false;
         levelChoiceCount = 0;
         aiAnalyzed = false;
@@ -1303,6 +1348,8 @@ export async function main() {
         ui.bossText.visible = false;
         ui.bossBarBg.visible = false;
         ui.bossBar.visible = false;
+        ui.floating.removeChildren();
+        ui.message.text = "";
         aiBannerUntil = 0;
         gameOver = false;
         paused = false;
@@ -1316,7 +1363,7 @@ export async function main() {
     win.addEventListener("keydown", (ev: any) => {
         const k = String(ev.key || "").toLowerCase();
         keys[k] = true;
-        if (k === "r" && gameOver) restart();
+        if (k === "r" && (gameOver || victory)) restart();
     });
     win.addEventListener("keyup", (ev: any) => {
         keys[String(ev.key || "").toLowerCase()] = false;
