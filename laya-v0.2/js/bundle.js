@@ -43,6 +43,11 @@
       drawPlayer(player);
       player.pos(W * 0.5, H * 0.58);
       world.addChild(player);
+      const weaponSprite = new Laya.Sprite();
+      weaponSprite.graphics.drawRoundRect(10, -5, 35, 10, 4, "#d8e0e6");
+      weaponSprite.graphics.drawRect(39, -2, 18, 4, "#91a5b2");
+      weaponSprite.graphics.drawRoundRect(5, -8, 13, 16, 5, "#647b8b");
+      player.addChild(weaponSprite);
       const enemies = [];
       const bullets = [];
       const pickups = [];
@@ -118,6 +123,7 @@
         xpCollected,
         kills,
         shots,
+        activeBullets: 0,
         enemies: 0,
         maxEnemiesSeen,
         pickups: 0,
@@ -180,8 +186,6 @@
         s.graphics.drawCircle(0, 0, 21, "#eec55f");
         s.graphics.drawCircle(0, -8, 10, "#ffdda2");
         s.graphics.drawRect(-14, 10, 28, 20, "#258087");
-        s.graphics.drawRect(14, -3, 31, 8, "#cbd4da");
-        s.graphics.drawRect(35, -1, 16, 3, "#8ea1ad");
         s.graphics.drawCircle(-6, -9, 2, "#162333");
         s.graphics.drawCircle(6, -9, 2, "#162333");
         s.graphics.drawLine(-12, 26, -18, 38, "#33465a", 5);
@@ -516,16 +520,34 @@
       }
       function fireBullet(dx, dy) {
         const len = Math.max(1e-3, Math.hypot(dx, dy));
+        const nx = dx / len;
+        const ny = dy / len;
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        weaponSprite.rotation = angle;
+        const muzzleX = player.x + nx * 56;
+        const muzzleY = player.y + ny * 56;
         const s = new Laya.Sprite();
-        s.graphics.drawRoundRect(-7, -2, 14, 4, 2, emergencyCounter === "EMP" ? "#69e8ff" : "#ffe08a");
-        s.pos(player.x, player.y);
-        s.rotation = Math.atan2(dy, dx) * 180 / Math.PI;
+        const bulletColor = emergencyCounter === "EMP" ? "#69e8ff" : "#ffe36e";
+        s.graphics.drawRoundRect(-15, -3, 30, 6, 3, bulletColor);
+        s.graphics.drawRect(-31, -1, 18, 2, emergencyCounter === "EMP" ? "#baf8ff" : "#fff4bd");
+        s.graphics.drawCircle(13, 0, 3, "#ffffff");
+        s.pos(muzzleX, muzzleY);
+        s.rotation = angle;
         world.addChild(s);
+        const flashFx = new Laya.Sprite();
+        flashFx.graphics.drawCircle(0, 0, 9, "#fff1a8");
+        flashFx.graphics.drawCircle(0, 0, 5, "#ffffff");
+        flashFx.pos(muzzleX, muzzleY);
+        world.addChild(flashFx);
+        Laya.timer.once(55, null, () => {
+          flashFx.removeSelf();
+          flashFx.destroy();
+        });
         shots++;
         bullets.push({
           sprite: s,
-          vx: dx / len * 650,
-          vy: dy / len * 650,
+          vx: nx * 610,
+          vy: ny * 610,
           damage: nailDamage,
           life: 1.65,
           pierce: emergencyCounter === "RICOCHET" ? 2 : 1,
@@ -1109,6 +1131,7 @@
         probe.xpCollected = xpCollected;
         probe.kills = kills;
         probe.shots = shots;
+        probe.activeBullets = bullets.length;
         probe.enemies = enemies.length;
         probe.maxEnemiesSeen = maxEnemiesSeen;
         probe.pickups = pickups.length;
