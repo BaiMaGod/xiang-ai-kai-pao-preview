@@ -335,27 +335,51 @@ export async function main() {
         intro.pos(cardX + 24, H * 0.47 + 23);
         startLayer.addChild(intro);
 
-        const button = new Laya.Sprite();
-        const bw = Math.min(340, W - 90);
+        const bw = Math.min(360, W - 70);
         const bx = (W - bw) * 0.5;
-        const by = H * 0.72;
-        button.graphics.drawRoundRect(bx, by, bw, 64, 18, "#55e4c7");
+        const by = H * 0.68;
+
+        const button = new Laya.Sprite();
+        button.name = "StartResistanceButton";
+        button.pos(bx, by);
+        button.graphics.drawRoundRect(0, 0, bw, 72, 20, "#58e8c9");
+        button.graphics.drawRoundRect(3, 3, bw - 6, 66, 17, "#32cdb0");
+        button.graphics.drawRoundRect(8, 8, bw - 16, 56, 14, "#57e3c6");
         button.mouseEnabled = true;
         startLayer.addChild(button);
 
-        const bt = makeText("开始反抗", 24, "#06121a", true);
+        const bt = makeText("开始反抗", 26, "#06151b", true);
         bt.width = bw;
+        bt.height = 72;
         bt.align = "center";
-        bt.pos(bx, by + 18);
-        startLayer.addChild(bt);
+        bt.valign = "middle";
+        bt.mouseEnabled = false;
+        button.addChild(bt);
 
-        button.on(Laya.Event.CLICK, null, () => {
+        const hint = makeText("点击这里开始游戏", 15, "#8fa9b9", true);
+        hint.width = bw;
+        hint.align = "center";
+        hint.pos(bx, by + 84);
+        startLayer.addChild(hint);
+
+        const startGame = () => {
             startLayer.removeChildren();
             gameStarted = true;
             paused = false;
             probe.running = true;
             flash("老王：智能是吧？先交物业费。", "#ffd77b");
+        };
+
+        button.on(Laya.Event.MOUSE_DOWN, null, () => {
+            button.scale(0.97, 0.97);
         });
+        button.on(Laya.Event.MOUSE_UP, null, () => {
+            button.scale(1, 1);
+        });
+        button.on(Laya.Event.MOUSE_OUT, null, () => {
+            button.scale(1, 1);
+        });
+        button.on(Laya.Event.CLICK, null, startGame);
     }
 
     function requiredXP(lv: number) {
