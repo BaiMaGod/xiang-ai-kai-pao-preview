@@ -66,6 +66,9 @@ jobs:
             await page.waitForFunction(
               () => window.__XIANG_AI_LAYA__?.ready === true &&
                     window.__XIANG_AI_LAYA__?.artVersion === 'v1' &&
+                    window.__XIANG_AI_LAYA__?.animationVersion === 'procedural-v1' &&
+                    Array.isArray(window.__XIANG_AI_LAYA__?.artLoadFailures) &&
+                    window.__XIANG_AI_LAYA__.artLoadFailures.length === 0 &&
                     window.__XIANG_AI_LAYA__?.startScreen === true &&
                     window.__XIANG_AI_LAYA__?.startButton,
               null,
@@ -142,7 +145,14 @@ jobs:
             if (clickedChoice !== firstChoice) throw new Error('Upgrade choice click did not apply selected card');
 
             await page.goto('http://127.0.0.1:4173/?fast=1', { waitUntil: 'networkidle', timeout: 60000 });
-            await page.waitForFunction(() => window.__XIANG_AI_LAYA__?.ready === true, null, { timeout: 20000 });
+            await page.waitForFunction(
+              () => window.__XIANG_AI_LAYA__?.ready === true &&
+                    window.__XIANG_AI_LAYA__?.animationVersion === 'procedural-v1' &&
+                    Array.isArray(window.__XIANG_AI_LAYA__?.artLoadFailures) &&
+                    window.__XIANG_AI_LAYA__.artLoadFailures.length === 0,
+              null,
+              { timeout: 20000 }
+            );
             const x0 = await page.evaluate(() => window.__XIANG_AI_LAYA__.playerX);
             await page.keyboard.down('d');
             await page.waitForTimeout(450);
@@ -179,6 +189,8 @@ jobs:
             if (state.game.shots <= 0) throw new Error('Auto-fire did not run');
             if (state.game.xpCollected <= 0) throw new Error('XP pickup loop did not run');
             if (state.game.level < 2) throw new Error('Roguelike level-up loop did not run');
+            if (state.game.artLoadFailures?.length) throw new Error('Art preload failures: ' + JSON.stringify(state.game.artLoadFailures));
+            if ((state.game.animatedEnemies || 0) <= 0) throw new Error('Procedural enemy animation layer did not initialize');
             if (!state.game.bossDefeated) throw new Error('GPT-0 boss was not defeated');
             if (!state.game.victory) throw new Error('Victory flow did not complete');
 
