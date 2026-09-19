@@ -369,6 +369,7 @@ export async function main() {
 
         const startGame = () => {
             if (gameStarted) return;
+            startLayer.offAll();
             startLayer.removeChildren();
             gameStarted = true;
             paused = false;
@@ -379,6 +380,14 @@ export async function main() {
 
         probe.startScreen = true;
         probe.startButton = { x: bx, y: by, width: bw, height: 72 };
+
+        // The start screen is a modal: make the whole screen tappable.
+        // This avoids engine hit-test differences between desktop Web,
+        // mobile Web and mini-game runtimes.
+        startLayer.size(W, H);
+        startLayer.hitArea = new Laya.Rectangle(0, 0, W, H);
+        startLayer.mouseEnabled = true;
+        startLayer.on(Laya.Event.CLICK, null, startGame);
 
         button.on(Laya.Event.MOUSE_DOWN, null, () => {
             button.alpha = 0.78;
