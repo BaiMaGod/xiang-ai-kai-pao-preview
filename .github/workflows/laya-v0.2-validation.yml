@@ -65,11 +65,36 @@ jobs:
             await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle', timeout: 60000 });
             await page.waitForFunction(
               () => window.__XIANG_AI_LAYA__?.ready === true &&
+                    window.__XIANG_AI_LAYA__?.artVersion === 'v1' &&
                     window.__XIANG_AI_LAYA__?.startScreen === true &&
                     window.__XIANG_AI_LAYA__?.startButton,
               null,
               { timeout: 20000 }
             );
+
+            const requiredArt = [
+              'player_wang.png',
+              'enemy_mop.png',
+              'enemy_box.png',
+              'enemy_dog.png',
+              'enemy_shield.png',
+              'boss_gpt0.png',
+              'pickup_xp.png',
+              'fx_nail.png',
+              'fx_muzzle.png',
+              'fx_hit.png'
+            ];
+            const assetCheck = await page.evaluate(async (files) => {
+              const results = [];
+              for (const file of files) {
+                const response = await fetch('resources/art/v1/' + file, { cache: 'no-store' });
+                results.push({ file, ok: response.ok, status: response.status });
+              }
+              return results;
+            }, requiredArt);
+            console.log('ART_ASSET_CHECK', JSON.stringify(assetCheck));
+            const brokenArt = assetCheck.filter(x => !x.ok);
+            if (brokenArt.length) throw new Error('Missing V1 art assets: ' + JSON.stringify(brokenArt));
 
             await page.waitForSelector('#start-game-dom', { state: 'visible', timeout: 5000 });
             const startButtonInfo = await page.locator('#start-game-dom').evaluate((el) => {
@@ -145,6 +170,7 @@ jobs:
               canvas: !!document.querySelector('canvas')
             }));
             console.log('XIANG_AI_LAYA_STATE', JSON.stringify(state));
+            if (state.game.artVersion !== 'v1') throw new Error('V1 art pass not active');
             if (!state.canvas) throw new Error('Laya canvas missing');
             if (state.game.playerX <= x0 + 2) throw new Error('Keyboard movement failed');
             if (!state.game.aiAnalyzed) throw new Error('AI analysis did not trigger');
