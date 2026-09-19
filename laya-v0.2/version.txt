@@ -1,4 +1,0 @@
-向AI开炮 LayaAir Preview
-version=0.4.2-boss-slice
-build=native-web-start-button
-start=dom-button-tested
