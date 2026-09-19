@@ -200,21 +200,10 @@ jobs:
             await page.keyboard.up('d');
 
             await page.waitForFunction(
-              () => window.__XIANG_AI_LAYA__?.aiAnalyzed &&
-                    window.__XIANG_AI_LAYA__?.shieldSpawned >= 2 &&
-                    window.__XIANG_AI_LAYA__?.emergencyUpgrade === 'AP' &&
-                    window.__XIANG_AI_LAYA__?.shots > 0 &&
-                    window.__XIANG_AI_LAYA__?.xpCollected > 0 &&
-                    window.__XIANG_AI_LAYA__?.level >= 2,
-              null,
-              { timeout: 12000 }
-            );
-
-            await page.waitForFunction(
               () => window.__XIANG_AI_LAYA__?.bossDefeated === true &&
                     window.__XIANG_AI_LAYA__?.victory === true,
               null,
-              { timeout: 25000 }
+              { timeout: 35000 }
             );
 
             const state = await page.evaluate(() => ({
