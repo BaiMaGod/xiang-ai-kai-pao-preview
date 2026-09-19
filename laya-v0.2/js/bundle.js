@@ -27,6 +27,18 @@
       const stage = Laya.stage;
       const win = Laya.Browser.window;
       const fast = new URLSearchParams(win.location.search).get("fast") === "1";
+      const ART = {
+        player: "resources/art/v1/player_wang.png",
+        vacuum: "resources/art/v1/enemy_mop.png",
+        delivery: "resources/art/v1/enemy_box.png",
+        dog: "resources/art/v1/enemy_dog.png",
+        shield: "resources/art/v1/enemy_shield.png",
+        boss: "resources/art/v1/boss_gpt0.png",
+        xp: "resources/art/v1/pickup_xp.png",
+        nail: "resources/art/v1/fx_nail.png",
+        muzzle: "resources/art/v1/fx_muzzle.png",
+        hit: "resources/art/v1/fx_hit.png"
+      };
       stage.bgColor = "#08111c";
       stage.scaleMode = Laya.Stage.SCALE_FIXED_AUTO;
       stage.alignH = Laya.Stage.ALIGN_CENTER;
@@ -44,9 +56,7 @@
       player.pos(W * 0.5, H * 0.58);
       world.addChild(player);
       const weaponSprite = new Laya.Sprite();
-      weaponSprite.graphics.drawRoundRect(10, -5, 35, 10, 4, "#d8e0e6");
-      weaponSprite.graphics.drawRect(39, -2, 18, 4, "#91a5b2");
-      weaponSprite.graphics.drawRoundRect(5, -8, 13, 16, 5, "#647b8b");
+      weaponSprite.visible = false;
       player.addChild(weaponSprite);
       const enemies = [];
       const bullets = [];
@@ -117,7 +127,8 @@
         stageHeight: H,
         engine: "LayaAir",
         engineVersion: "3.4.0",
-        version: "0.4.2-boss-slice",
+        version: "0.5.0-art-pass-1",
+        artVersion: "v1",
         codeFirst: true,
         fast,
         playerX: player.x,
@@ -156,6 +167,29 @@
         t.font = "Arial";
         return t;
       }
+      function attachArt(parent, url, sourceW, sourceH, targetW, targetH, offsetX = 0, offsetY = 0) {
+        const art = new Laya.Sprite();
+        art.loadImage(url);
+        art.size(sourceW, sourceH);
+        art.pivot(sourceW * 0.5, sourceH * 0.5);
+        art.pos(offsetX, offsetY);
+        art.scale(targetW / sourceW, targetH / sourceH);
+        art.mouseEnabled = false;
+        parent.addChild(art);
+        return art;
+      }
+      function spawnHitFx(x, y) {
+        const fx = new Laya.Sprite();
+        attachArt(fx, ART.hit, 64, 64, 34, 34);
+        fx.pos(x, y);
+        fx.rotation = Math.random() * 360;
+        fx.alpha = 0.95;
+        world.addChild(fx);
+        Laya.timer.once(95, null, () => {
+          fx.removeSelf();
+          fx.destroy();
+        });
+      }
       function drawWorld() {
         const bg = new Laya.Sprite();
         bg.graphics.drawRect(0, 0, W, H, "#08111c");
@@ -188,13 +222,15 @@
         world.addChild(city);
       }
       function drawPlayer(s) {
-        s.graphics.drawCircle(0, 0, 21, "#eec55f");
-        s.graphics.drawCircle(0, -8, 10, "#ffdda2");
-        s.graphics.drawRect(-14, 10, 28, 20, "#258087");
-        s.graphics.drawCircle(-6, -9, 2, "#162333");
-        s.graphics.drawCircle(6, -9, 2, "#162333");
-        s.graphics.drawLine(-12, 26, -18, 38, "#33465a", 5);
-        s.graphics.drawLine(12, 26, 18, 38, "#33465a", 5);
+        const shadow = new Laya.Sprite();
+        shadow.graphics.drawEllipse(-25, 24, 50, 17, "#00000066");
+        shadow.mouseEnabled = false;
+        s.addChild(shadow);
+        attachArt(s, ART.player, 160, 180, 78, 88, 0, -7);
+        const ring = new Laya.Sprite();
+        ring.graphics.drawCircle(0, 26, 29, null, "#41e7e0aa", 2);
+        ring.mouseEnabled = false;
+        s.addChildAt(ring, 0);
       }
       function createUI() {
         const hud = new Laya.Sprite();
@@ -427,28 +463,18 @@
       }
       function makeEnemy(kind, x, y) {
         const s = new Laya.Sprite();
+        const shadow = new Laya.Sprite();
+        shadow.graphics.drawEllipse(-24, 15, 48, 15, "#00000066");
+        shadow.mouseEnabled = false;
+        s.addChild(shadow);
         if (kind === "vacuum") {
-          s.graphics.drawRoundRect(-21, -10, 42, 23, 10, "#91a8ba");
-          s.graphics.drawCircle(0, -4, 8, "#263c50");
-          s.graphics.drawCircle(0, -4, 3, "#ff5964");
-          s.graphics.drawLine(-13, 12, 13, 12, "#c9d5dd", 3);
+          attachArt(s, ART.vacuum, 128, 128, 58, 58, 0, -5);
         } else if (kind === "delivery") {
-          s.graphics.drawRoundRect(-19, -19, 38, 38, 8, "#e58b4b");
-          s.graphics.drawRect(-14, -11, 28, 17, "#61392a");
-          s.graphics.drawCircle(-12, 19, 6, "#273440");
-          s.graphics.drawCircle(12, 19, 6, "#273440");
+          attachArt(s, ART.delivery, 132, 128, 62, 60, 0, -5);
         } else if (kind === "dog") {
-          s.graphics.drawRoundRect(-23, -13, 46, 26, 8, "#7b8fa6");
-          s.graphics.drawCircle(16, -10, 8, "#a9bbca");
-          s.graphics.drawLine(-16, 10, -23, 23, "#7b8fa6", 5);
-          s.graphics.drawLine(13, 10, 21, 23, "#7b8fa6", 5);
-          s.graphics.drawCircle(19, -12, 2, "#ff5964");
+          attachArt(s, ART.dog, 148, 128, 70, 61, 0, -6);
         } else {
-          s.graphics.drawRoundRect(-18, -18, 36, 36, 8, "#65788c");
-          s.graphics.drawCircle(2, -6, 5, "#ff5964");
-          s.graphics.drawRoundRect(-34, -27, 15, 54, 6, "#3d8eb2");
-          s.graphics.drawLine(-29, -21, -29, 21, "#9be7ff", 3);
-          s.graphics.drawLine(-24, -21, -24, 21, "#2b637d", 2);
+          attachArt(s, ART.shield, 102, 120, 66, 78, 0, -8);
         }
         s.pos(x, y);
         world.addChild(s);
@@ -498,8 +524,7 @@
       }
       function spawnPickup(x, y, value) {
         const s = new Laya.Sprite();
-        s.graphics.drawPoly(0, 0, [-8, 0, 0, -8, 8, 0, 0, 8], "#66d9ff");
-        s.graphics.drawCircle(0, 0, 3, "#d8f7ff");
+        attachArt(s, ART.xp, 56, 56, 29, 29);
         s.pos(x, y);
         world.addChild(s);
         pickups.push({ sprite: s, value: fast ? value * 3 : value, life: 18 });
@@ -740,19 +765,17 @@
         const muzzleX = player.x + nx * 56;
         const muzzleY = player.y + ny * 56;
         const s = new Laya.Sprite();
-        const bulletColor = emergencyCounter === "EMP" ? "#69e8ff" : "#ffe36e";
-        s.graphics.drawRoundRect(-15, -3, 30, 6, 3, bulletColor);
-        s.graphics.drawRect(-31, -1, 18, 2, emergencyCounter === "EMP" ? "#baf8ff" : "#fff4bd");
-        s.graphics.drawCircle(13, 0, 3, "#ffffff");
+        attachArt(s, ART.nail, 96, 32, 40, 13);
         s.pos(muzzleX, muzzleY);
         s.rotation = angle;
+        if (emergencyCounter === "EMP") s.alpha = 0.88;
         world.addChild(s);
         const flashFx = new Laya.Sprite();
-        flashFx.graphics.drawCircle(0, 0, 9, "#fff1a8");
-        flashFx.graphics.drawCircle(0, 0, 5, "#ffffff");
+        attachArt(flashFx, ART.muzzle, 80, 45, 44, 25);
         flashFx.pos(muzzleX, muzzleY);
+        flashFx.rotation = angle;
         world.addChild(flashFx);
-        Laya.timer.once(55, null, () => {
+        Laya.timer.once(65, null, () => {
           flashFx.removeSelf();
           flashFx.destroy();
         });
@@ -831,17 +854,11 @@
         bossHp = bossMaxHp;
         bossSkillCooldown = fast ? 0.7 : 1.8;
         const s = new Laya.Sprite();
-        s.graphics.drawCircle(0, 0, 68, "#17283a");
-        s.graphics.drawCircle(0, 0, 56, "#344b63");
-        s.graphics.drawCircle(0, 0, 34, "#0d1723");
-        s.graphics.drawCircle(0, 0, 20, "#ff4f68");
-        s.graphics.drawCircle(0, 0, 9, "#ffd7dc");
-        s.graphics.drawRoundRect(-92, -16, 38, 32, 10, "#536f87");
-        s.graphics.drawRoundRect(54, -16, 38, 32, 10, "#536f87");
-        s.graphics.drawLine(-54, 0, -91, 0, "#7e9cb2", 8);
-        s.graphics.drawLine(54, 0, 91, 0, "#7e9cb2", 8);
-        s.graphics.drawCircle(-73, 0, 8, "#ffb84f");
-        s.graphics.drawCircle(73, 0, 8, "#ffb84f");
+        const bossShadow = new Laya.Sprite();
+        bossShadow.graphics.drawEllipse(-118, 45, 236, 48, "#00000077");
+        bossShadow.mouseEnabled = false;
+        s.addChild(bossShadow);
+        attachArt(s, ART.boss, 240, 120, 300, 150, 0, -8);
         s.pos(W * 0.5, playTop + 110);
         world.addChild(s);
         bossSprite = s;
@@ -871,7 +888,7 @@
         const speed = bossPhase === 3 ? 1.9 : bossPhase === 2 ? 1.25 : 0.8;
         bossSprite.x = W * 0.5 + Math.sin(elapsed * speed) * Math.min(150, W * 0.28);
         bossSprite.y = playTop + 105 + Math.cos(elapsed * 0.9) * 28;
-        bossSprite.rotation += (bossPhase === 3 ? 35 : 14) * dt;
+        bossSprite.rotation = Math.sin(elapsed * (bossPhase === 3 ? 1.4 : 0.8)) * (bossPhase === 3 ? 3.5 : 1.8);
         bossSkillCooldown -= dt;
         if (bossSkillCooldown <= 0) {
           bossSkillCooldown = fast ? bossPhase === 3 ? 0.55 : 0.8 : bossPhase === 3 ? 1.05 : bossPhase === 2 ? 1.35 : 1.8;
@@ -1276,7 +1293,8 @@
           if (bossActive && bossSprite && !consumed) {
             const dx = bossSprite.x - b.sprite.x;
             const dy = bossSprite.y - b.sprite.y;
-            if (dx * dx + dy * dy <= 78 * 78) {
+            if (dx * dx + dy * dy <= 105 * 105) {
+              spawnHitFx(b.sprite.x, b.sprite.y);
               damageBoss(b.damage);
               b.pierce--;
               if (b.pierce <= 0) consumed = true;
@@ -1300,6 +1318,7 @@
               e.stunned = Math.max(e.stunned, 1.1);
               showFloat("EMP", e.sprite.x, e.sprite.y, "#69e8ff");
             }
+            spawnHitFx(b.sprite.x, b.sprite.y);
             e.hp -= damage;
             b.pierce--;
             if (e.hp <= 0) killEnemy(j);
