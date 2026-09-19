@@ -155,6 +155,32 @@ jobs:
             if (state.game.level < 2) throw new Error('Roguelike level-up loop did not run');
             if (!state.game.bossDefeated) throw new Error('GPT-0 boss was not defeated');
             if (!state.game.victory) throw new Error('Victory flow did not complete');
+
+            await page.waitForSelector('#game-choice-modal[data-modal-type="VICTORY"]', { state: 'visible', timeout: 5000 });
+            const victoryButtons = page.locator('#game-choice-modal .game-choice-button');
+            if (await victoryButtons.count() !== 1) throw new Error('Victory screen must expose one restart action');
+            await victoryButtons.first().click();
+
+            await page.waitForFunction(
+              () => window.__XIANG_AI_LAYA__?.running === true &&
+                    window.__XIANG_AI_LAYA__?.victory === false &&
+                    window.__XIANG_AI_LAYA__?.bossDefeated === false &&
+                    window.__XIANG_AI_LAYA__?.level === 1 &&
+                    window.__XIANG_AI_LAYA__?.kills === 0 &&
+                    !document.querySelector('#game-choice-modal'),
+              null,
+              { timeout: 5000 }
+            );
+
+            const restarted = await page.evaluate(() => ({
+              level: window.__XIANG_AI_LAYA__.level,
+              kills: window.__XIANG_AI_LAYA__.kills,
+              victory: window.__XIANG_AI_LAYA__.victory,
+              bossDefeated: window.__XIANG_AI_LAYA__.bossDefeated,
+              running: window.__XIANG_AI_LAYA__.running
+            }));
+            console.log('VICTORY_RESTART_CLICK_OK', JSON.stringify(restarted));
+
             if (errors.length) throw new Error(errors.join('\n'));
             await page.screenshot({ path: 'laya-v0.2-smoke.png', fullPage: true });
             await browser.close();
