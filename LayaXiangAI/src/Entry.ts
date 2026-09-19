@@ -74,6 +74,7 @@ export async function main() {
     const keys: Record<string, boolean> = {};
 
     let gameStarted = fast;
+    let startGameAction: (() => void) | null = null;
     let gameOver = false;
     let paused = !gameStarted;
     let dragging = false;
@@ -371,6 +372,7 @@ export async function main() {
             if (gameStarted) return;
             startLayer.offAll();
             startLayer.removeChildren();
+            startGameAction = null;
             gameStarted = true;
             paused = false;
             probe.running = true;
@@ -378,6 +380,7 @@ export async function main() {
             flash("老王：智能是吧？先交物业费。", "#ffd77b");
         };
 
+        startGameAction = startGame;
         probe.startScreen = true;
         probe.startButton = { x: bx, y: by, width: bw, height: 72 };
 
@@ -1101,7 +1104,11 @@ export async function main() {
     });
 
     stage.on(Laya.Event.MOUSE_DOWN, null, () => {
-        if (paused || !gameStarted) return;
+        if (!gameStarted) {
+            startGameAction?.();
+            return;
+        }
+        if (paused) return;
         dragging = true;
         pointerX = stage.mouseX;
         pointerY = stage.mouseY;
