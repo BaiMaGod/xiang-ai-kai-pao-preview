@@ -71,24 +71,30 @@ jobs:
               { timeout: 20000 }
             );
 
-            const clickPoint = await page.evaluate(() => {
-              const canvas = document.querySelector('canvas');
-              const rect = canvas.getBoundingClientRect();
-              const g = window.__XIANG_AI_LAYA__;
-              const b = g.startButton;
+            await page.waitForSelector('#start-game-dom', { state: 'visible', timeout: 5000 });
+            const startButtonInfo = await page.locator('#start-game-dom').evaluate((el) => {
+              const r = el.getBoundingClientRect();
+              const cs = getComputedStyle(el);
               return {
-                x: rect.left + ((b.x + b.width / 2) / g.stageWidth) * rect.width,
-                y: rect.top + ((b.y + b.height / 2) / g.stageHeight) * rect.height
+                width: r.width,
+                height: r.height,
+                background: cs.backgroundColor,
+                color: cs.color
               };
             });
-            await page.mouse.click(clickPoint.x, clickPoint.y);
+            console.log('START_BUTTON_VISUAL', JSON.stringify(startButtonInfo));
+            if (startButtonInfo.width < 250 || startButtonInfo.height < 60) {
+              throw new Error('Web start button is too small');
+            }
+            await page.locator('#start-game-dom').click();
             await page.waitForFunction(
               () => window.__XIANG_AI_LAYA__?.running === true &&
-                    window.__XIANG_AI_LAYA__?.startScreen === false,
+                    window.__XIANG_AI_LAYA__?.startScreen === false &&
+                    !document.querySelector('#start-game-dom'),
               null,
               { timeout: 5000 }
             );
-            console.log('START_BUTTON_CLICK_OK', JSON.stringify(clickPoint));
+            console.log('START_BUTTON_CLICK_OK');
 
             await page.goto('http://127.0.0.1:4173/?fast=1', { waitUntil: 'networkidle', timeout: 60000 });
             await page.waitForFunction(() => window.__XIANG_AI_LAYA__?.ready === true, null, { timeout: 20000 });
