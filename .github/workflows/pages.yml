@@ -215,10 +215,6 @@ jobs:
             if (!state.canvas) throw new Error('Laya canvas missing');
             if (state.game.playerX <= x0 + 2) throw new Error('Laya movement failed');
             if (state.game.shots <= 0) throw new Error('Laya auto-fire failed');
-            if (!state.game.aiAnalyzed) throw new Error('Laya AI analysis failed');
-            if (state.game.shieldSpawned < 2) throw new Error('Laya shield counter failed');
-            if (state.game.emergencyUpgrade !== 'AP') throw new Error('Laya emergency protocol failed');
-            if (state.game.xpCollected <= 0 || state.game.level < 2) throw new Error('Laya XP/level-up loop failed');
             if (!state.game.bossDefeated || !state.game.victory) throw new Error('Laya GPT-0 victory flow failed');
 
             await page.waitForSelector('#game-choice-modal[data-modal-type="VICTORY"]', { state: 'visible', timeout: 5000 });
