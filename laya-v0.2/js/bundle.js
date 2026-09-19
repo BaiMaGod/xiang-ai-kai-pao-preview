@@ -111,6 +111,8 @@
       if (!fast) showStartScreen();
       const probe = {
         ready: true,
+        stageWidth: W,
+        stageHeight: H,
         engine: "LayaAir",
         engineVersion: "3.4.0",
         version: "0.4.2-boss-slice",
