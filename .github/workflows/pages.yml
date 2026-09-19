@@ -150,9 +150,43 @@ jobs:
             });
 
             const base = process.env.PREVIEW_URL.replace(/\/$/, '');
-            const url = base + '/laya-v0.2/?fast=1';
-            console.log('Opening Laya preview:', url);
 
+            const normalUrl = base + '/laya-v0.2/';
+            console.log('Opening normal Laya preview:', normalUrl);
+            await page.goto(normalUrl, { waitUntil: 'networkidle', timeout: 60000 });
+            await page.waitForFunction(
+              () => window.__XIANG_AI_LAYA__?.ready === true &&
+                    window.__XIANG_AI_LAYA__?.startScreen === true,
+              null,
+              { timeout: 20000 }
+            );
+            await page.waitForSelector('#start-game-dom', { state: 'visible', timeout: 5000 });
+            await page.locator('#start-game-dom').click();
+            await page.waitForFunction(
+              () => window.__XIANG_AI_LAYA__?.running === true &&
+                    window.__XIANG_AI_LAYA__?.startScreen === false,
+              null,
+              { timeout: 5000 }
+            );
+
+            await page.evaluate(() => window.__XIANG_AI_LAYA__.testOpenLevelUp());
+            await page.waitForSelector('#game-choice-modal[data-modal-type="LEVEL_UP"]', { state: 'visible', timeout: 5000 });
+            const cards = page.locator('#game-choice-modal .game-choice-button');
+            if (await cards.count() !== 3) throw new Error('Live Laya upgrade modal did not show 3 choices');
+            const firstChoice = await cards.first().getAttribute('data-choice-id');
+            await cards.first().click();
+            await page.waitForFunction(
+              () => !document.querySelector('#game-choice-modal') &&
+                    window.__XIANG_AI_LAYA__?.lastChoice,
+              null,
+              { timeout: 5000 }
+            );
+            const clickedChoice = await page.evaluate(() => window.__XIANG_AI_LAYA__.lastChoice);
+            if (clickedChoice !== firstChoice) throw new Error('Live Laya upgrade choice did not apply');
+            console.log('LIVE_LAYA_UPGRADE_CHOICE_OK', JSON.stringify({ firstChoice, clickedChoice }));
+
+            const url = base + '/laya-v0.2/?fast=1';
+            console.log('Opening fast Laya preview:', url);
             await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
             await page.waitForFunction(
               () => window.__XIANG_AI_LAYA__?.ready === true,
