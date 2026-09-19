@@ -53,6 +53,8 @@
       const pickups = [];
       const keys = {};
       let gameStarted = fast;
+      let startGameAction = null;
+      let webStartButton = null;
       let gameOver = false;
       let paused = !gameStarted;
       let dragging = false;
@@ -108,7 +110,6 @@
       stage.addChild(modalLayer);
       const startLayer = new Laya.Sprite();
       stage.addChild(startLayer);
-      if (!fast) showStartScreen();
       const probe = {
         ready: true,
         stageWidth: W,
@@ -144,6 +145,7 @@
         running: gameStarted
       };
       win.__XIANG_AI_LAYA__ = probe;
+      if (!fast) showStartScreen();
       function makeText(text, size, color, bold = false) {
         const t = new Laya.Text();
         t.text = text;
@@ -322,15 +324,64 @@
         startLayer.addChild(hint);
         const startGame = () => {
           if (gameStarted) return;
+          startLayer.offAll();
           startLayer.removeChildren();
+          startGameAction = null;
+          if (webStartButton) {
+            webStartButton.remove();
+            webStartButton = null;
+          }
           gameStarted = true;
           paused = false;
           probe.running = true;
           probe.startScreen = false;
           flash("老王：智能是吧？先交物业费。", "#ffd77b");
         };
+        startGameAction = startGame;
         probe.startScreen = true;
         probe.startButton = { x: bx, y: by, width: bw, height: 72 };
+        const doc = win.document;
+        if (doc == null ? void 0 : doc.body) {
+          const domBtn = doc.createElement("button");
+          domBtn.id = "start-game-dom";
+          domBtn.type = "button";
+          domBtn.textContent = "▶  开始反抗";
+          domBtn.setAttribute("aria-label", "开始反抗");
+          domBtn.style.position = "fixed";
+          domBtn.style.left = "50%";
+          domBtn.style.top = "69%";
+          domBtn.style.transform = "translate(-50%, -50%)";
+          domBtn.style.width = "min(360px, calc(100vw - 70px))";
+          domBtn.style.height = "72px";
+          domBtn.style.border = "4px solid #D9FFF6";
+          domBtn.style.borderRadius = "18px";
+          domBtn.style.background = "#58E8C9";
+          domBtn.style.color = "#06191A";
+          domBtn.style.fontSize = "26px";
+          domBtn.style.fontWeight = "800";
+          domBtn.style.fontFamily = "Arial, sans-serif";
+          domBtn.style.cursor = "pointer";
+          domBtn.style.zIndex = "2147483647";
+          domBtn.style.boxShadow = "0 0 0 6px rgba(88,232,201,.14)";
+          domBtn.style.touchAction = "manipulation";
+          domBtn.addEventListener("pointerdown", () => {
+            domBtn.style.transform = "translate(-50%, -50%) scale(.97)";
+          });
+          domBtn.addEventListener("pointerup", () => {
+            domBtn.style.transform = "translate(-50%, -50%) scale(1)";
+          });
+          domBtn.addEventListener("pointercancel", () => {
+            domBtn.style.transform = "translate(-50%, -50%) scale(1)";
+          });
+          domBtn.addEventListener("click", startGame);
+          doc.body.appendChild(domBtn);
+          webStartButton = domBtn;
+          probe.webStartButton = true;
+        }
+        startLayer.size(W, H);
+        startLayer.hitArea = new Laya.Rectangle(0, 0, W, H);
+        startLayer.mouseEnabled = true;
+        startLayer.on(Laya.Event.CLICK, null, startGame);
         button.on(Laya.Event.MOUSE_DOWN, null, () => {
           button.alpha = 0.78;
         });
@@ -975,7 +1026,11 @@
         keys[String(ev.key || "").toLowerCase()] = false;
       });
       stage.on(Laya.Event.MOUSE_DOWN, null, () => {
-        if (paused || !gameStarted) return;
+        if (!gameStarted) {
+          startGameAction == null ? void 0 : startGameAction();
+          return;
+        }
+        if (paused) return;
         dragging = true;
         pointerX = stage.mouseX;
         pointerY = stage.mouseY;
