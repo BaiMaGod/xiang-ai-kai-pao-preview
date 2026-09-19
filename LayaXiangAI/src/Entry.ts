@@ -135,7 +135,6 @@ export async function main() {
     stage.addChild(modalLayer);
     const startLayer = new Laya.Sprite();
     stage.addChild(startLayer);
-    if (!fast) showStartScreen();
 
     const probe: any = {
         ready: true,
@@ -172,6 +171,7 @@ export async function main() {
         running: gameStarted
     };
     win.__XIANG_AI_LAYA__ = probe;
+    if (!fast) showStartScreen();
 
     function makeText(text: string, size: number, color: string, bold = false): any {
         const t = new Laya.Text();
