@@ -1,0 +1,4 @@
+向AI开炮 LayaAir Preview
+version=0.5.0-art-pass-1
+art=v1
+assets=player+4-enemies+gpt0+xp+nail+muzzle+hit
