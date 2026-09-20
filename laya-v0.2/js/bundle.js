@@ -40,6 +40,7 @@
         muzzle: "resources/art/v1/fx_muzzle.png",
         hit: "resources/art/v1/fx_hit.png"
       };
+      const MAP_SVG_DATA = "data:image/svg+xml;charset=utf-8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="2200" viewBox="0 0 2200 2200">\n<defs>\n  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">\n    <stop offset="0" stop-color="#07131f"/><stop offset=".55" stop-color="#0a1826"/><stop offset="1" stop-color="#06111b"/>\n  </linearGradient>\n  <pattern id="tiles" width="72" height="72" patternUnits="userSpaceOnUse">\n    <rect width="72" height="72" fill="#0b1926"/>\n    <path d="M72 0H0V72" fill="none" stroke="#153048" stroke-width="2" opacity=".55"/>\n  </pattern>\n  <pattern id="roadDashV" width="16" height="104" patternUnits="userSpaceOnUse">\n    <rect x="6" y="18" width="4" height="42" rx="2" fill="#66869b" opacity=".8"/>\n  </pattern>\n  <pattern id="roadDashH" width="104" height="16" patternUnits="userSpaceOnUse">\n    <rect x="18" y="6" width="42" height="4" rx="2" fill="#66869b" opacity=".8"/>\n  </pattern>\n  <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>\n  <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>\n</defs>\n<rect width="2200" height="2200" fill="url(#bg)"/>\n<rect width="2200" height="2200" fill="url(#tiles)" opacity=".92"/>\n\n<!-- road network -->\n<g fill="#0b1722" stroke="#2c4658" stroke-width="8">\n  <rect x="285" y="0" width="190" height="2200"/>\n  <rect x="1005" y="0" width="190" height="2200"/>\n  <rect x="1725" y="0" width="190" height="2200"/>\n  <rect x="0" y="285" width="2200" height="190"/>\n  <rect x="0" y="1005" width="2200" height="190"/>\n  <rect x="0" y="1725" width="2200" height="190"/>\n</g>\n<g opacity=".75">\n  <rect x="375" y="0" width="16" height="2200" fill="url(#roadDashV)"/>\n  <rect x="1095" y="0" width="16" height="2200" fill="url(#roadDashV)"/>\n  <rect x="1815" y="0" width="16" height="2200" fill="url(#roadDashV)"/>\n  <rect x="0" y="375" width="2200" height="16" fill="url(#roadDashH)"/>\n  <rect x="0" y="1095" width="2200" height="16" fill="url(#roadDashH)"/>\n  <rect x="0" y="1815" width="2200" height="16" fill="url(#roadDashH)"/>\n</g>\n\n<!-- cyan curb lighting -->\n<g stroke="#22d9ff" stroke-width="8" opacity=".72" filter="url(#glow)" fill="none">\n  <path d="M285 0V2200M475 0V2200M1005 0V2200M1195 0V2200M1725 0V2200M1915 0V2200"/>\n  <path d="M0 285H2200M0 475H2200M0 1005H2200M0 1195H2200M0 1725H2200M0 1915H2200"/>\n</g>\n\n<!-- intersections -->\n<g fill="#0a1621" stroke="#355468" stroke-width="7">\n  <rect x="270" y="270" width="220" height="220" rx="28"/>\n  <rect x="990" y="270" width="220" height="220" rx="28"/>\n  <rect x="1710" y="270" width="220" height="220" rx="28"/>\n  <rect x="270" y="990" width="220" height="220" rx="28"/>\n  <rect x="960" y="960" width="280" height="280" rx="52"/>\n  <rect x="1710" y="990" width="220" height="220" rx="28"/>\n  <rect x="270" y="1710" width="220" height="220" rx="28"/>\n  <rect x="990" y="1710" width="220" height="220" rx="28"/>\n  <rect x="1710" y="1710" width="220" height="220" rx="28"/>\n</g>\n\n<!-- central hub -->\n<g transform="translate(1100 1100)">\n  <circle r="132" fill="#0c1c2a" stroke="#31556b" stroke-width="12"/>\n  <circle r="86" fill="none" stroke="#27d9ff" stroke-width="7" opacity=".75"/>\n  <circle r="52" fill="#102433" stroke="#4a7186" stroke-width="5"/>\n  <g fill="#35e4ff" filter="url(#glow)">\n    <circle cx="0" cy="-88" r="7"/><circle cx="88" cy="0" r="7"/><circle cx="0" cy="88" r="7"/><circle cx="-88" cy="0" r="7"/>\n  </g>\n</g>\n\n<!-- building blocks -->\n<g stroke="#2b4659" stroke-width="7">\n  <g transform="translate(55 55)">\n    <rect width="190" height="170" rx="18" fill="#0f2232"/><rect x="22" y="24" width="145" height="92" rx="12" fill="#132c40"/>\n    <g fill="#09131d" stroke="#42647a" stroke-width="4"><circle cx="62" cy="70" r="20"/><circle cx="125" cy="70" r="20"/></g>\n    <rect x="20" y="138" width="150" height="8" rx="4" fill="#29ddff"/>\n  </g>\n  <g transform="translate(525 55)">\n    <rect width="390" height="170" rx="20" fill="#0d2030"/><rect x="36" y="30" width="150" height="105" rx="10" fill="#142d40"/>\n    <rect x="220" y="28" width="132" height="92" rx="12" fill="#102839"/>\n    <path d="M28 145H360" stroke="#24d9ff" stroke-width="8"/>\n  </g>\n  <g transform="translate(1245 55)">\n    <rect width="390" height="170" rx="20" fill="#0d2030"/><rect x="30" y="28" width="160" height="100" rx="12" fill="#142d40"/>\n    <rect x="222" y="25" width="125" height="112" rx="10" fill="#102839"/>\n    <g fill="#132a3b"><circle cx="270" cy="77" r="30"/><circle cx="325" cy="77" r="30"/></g>\n    <path d="M30 145H360" stroke="#24d9ff" stroke-width="8"/>\n  </g>\n  <g transform="translate(1955 55)">\n    <rect width="190" height="170" rx="18" fill="#0f2232"/><rect x="25" y="26" width="140" height="88" rx="12" fill="#132c40"/>\n    <g fill="#09131d" stroke="#42647a" stroke-width="4"><circle cx="64" cy="70" r="18"/><circle cx="124" cy="70" r="18"/></g>\n    <rect x="20" y="138" width="150" height="8" rx="4" fill="#29ddff"/>\n  </g>\n</g>\n\n<!-- reusable plazas / structures -->\n<g stroke="#29475b" stroke-width="7">\n  <rect x="40" y="525" width="205" height="390" rx="24" fill="#0c1d2b"/>\n  <rect x="525" y="525" width="390" height="390" rx="26" fill="#0b1b29"/>\n  <rect x="1245" y="525" width="390" height="390" rx="26" fill="#0b1b29"/>\n  <rect x="1955" y="525" width="205" height="390" rx="24" fill="#0c1d2b"/>\n\n  <rect x="40" y="1245" width="205" height="390" rx="24" fill="#0c1d2b"/>\n  <rect x="525" y="1245" width="390" height="390" rx="26" fill="#0b1b29"/>\n  <rect x="1245" y="1245" width="390" height="390" rx="26" fill="#0b1b29"/>\n  <rect x="1955" y="1245" width="205" height="390" rx="24" fill="#0c1d2b"/>\n\n  <rect x="40" y="1955" width="205" height="205" rx="24" fill="#0c1d2b"/>\n  <rect x="525" y="1955" width="390" height="205" rx="26" fill="#0b1b29"/>\n  <rect x="1245" y="1955" width="390" height="205" rx="26" fill="#0b1b29"/>\n  <rect x="1955" y="1955" width="205" height="205" rx="24" fill="#0c1d2b"/>\n</g>\n\n<!-- landing pads -->\n<g fill="none" stroke="#2ecdf2" opacity=".58">\n  <g stroke-width="9">\n    <circle cx="145" cy="710" r="63"/><circle cx="720" cy="705" r="82"/><circle cx="1440" cy="720" r="70"/><circle cx="2055" cy="710" r="62"/>\n    <circle cx="145" cy="1430" r="62"/><circle cx="720" cy="1430" r="78"/><circle cx="1440" cy="1430" r="68"/><circle cx="2055" cy="1430" r="62"/>\n    <circle cx="710" cy="2055" r="70"/><circle cx="1440" cy="2055" r="70"/>\n  </g>\n  <g stroke-width="4">\n    <path d="M145 625V660M145 760V795M60 710H95M195 710H230"/>\n    <path d="M720 600V640M720 770V810M610 705H650M790 705H830"/>\n    <path d="M1440 630V665M1440 775V810M1345 720H1380M1500 720H1535"/>\n  </g>\n</g>\n\n<!-- machinery / crates -->\n<g fill="#10283a" stroke="#3a5a6e" stroke-width="5">\n  <g transform="translate(570 570)">\n    <rect width="145" height="98" rx="12"/><rect x="22" y="20" width="100" height="18" fill="#1d4257"/><circle cx="42" cy="69" r="12"/><circle cx="103" cy="69" r="12"/>\n  </g>\n  <g transform="translate(760 775)"><rect width="105" height="96" rx="10"/><path d="M12 12L93 84M93 12L12 84" stroke="#55758a"/></g>\n  <g transform="translate(1300 560)"><rect width="170" height="120" rx="14"/><rect x="28" y="26" width="116" height="22" fill="#1d4257"/><circle cx="55" cy="86" r="15"/><circle cx="116" cy="86" r="15"/></g>\n  <g transform="translate(1510 775)"><rect width="90" height="90" rx="8"/><path d="M12 12L78 78M78 12L12 78" stroke="#55758a"/></g>\n  <g transform="translate(580 1300)"><rect width="170" height="120" rx="14"/><rect x="28" y="25" width="116" height="22" fill="#1d4257"/><circle cx="55" cy="86" r="15"/><circle cx="116" cy="86" r="15"/></g>\n  <g transform="translate(1325 1300)"><rect width="155" height="110" rx="14"/><rect x="22" y="22" width="110" height="20" fill="#1d4257"/><circle cx="50" cy="79" r="13"/><circle cx="108" cy="79" r="13"/></g>\n  <g transform="translate(1510 1510)"><rect width="90" height="90" rx="8"/><path d="M12 12L78 78M78 12L12 78" stroke="#55758a"/></g>\n</g>\n\n<!-- hazard details -->\n<g stroke="#9c7427" stroke-width="10" opacity=".7">\n  <path d="M540 880H690M750 880H900M1280 880H1430M1490 880H1620"/>\n  <path d="M540 1600H690M750 1600H900M1280 1600H1430M1490 1600H1620"/>\n</g>\n\n<!-- small cyan light clusters -->\n<g fill="#35dfff" opacity=".72">\n  <circle cx="585" cy="735" r="6"/><circle cx="610" cy="735" r="6"/><circle cx="635" cy="735" r="6"/>\n  <circle cx="1550" cy="690" r="6"/><circle cx="1575" cy="690" r="6"/><circle cx="1600" cy="690" r="6"/>\n  <circle cx="650" cy="1540" r="6"/><circle cx="675" cy="1540" r="6"/><circle cx="700" cy="1540" r="6"/>\n  <circle cx="1330" cy="1535" r="6"/><circle cx="1355" cy="1535" r="6"/><circle cx="1380" cy="1535" r="6"/>\n</g>\n\n<!-- subtle vignette -->\n<rect width="2200" height="2200" fill="none" stroke="#02070d" stroke-width="80" opacity=".65"/>\n</svg>');
       const artUrls = Object.values(ART);
       const artLoadFailures = [];
       try {
@@ -117,13 +118,25 @@
       const margin = 34;
       const playTop = 150;
       const playBottom = H - 50;
+      const WORLD_WIDTH = 2200;
+      const WORLD_HEIGHT = 2200;
+      const WORLD_MARGIN = 54;
+      const deadLeft = Math.max(120, W * 0.25);
+      const deadRight = Math.min(W - 120, W * 0.7);
+      const deadTop = Math.max(playTop + 70, H * 0.3);
+      const deadBottom = Math.min(H - 90, H * 0.72);
       const world = new Laya.Sprite();
       stage.addChild(world);
       drawWorld();
       const player = new Laya.Sprite();
       const playerVisual = drawPlayer(player);
-      player.pos(W * 0.5, H * 0.58);
+      player.pos(WORLD_WIDTH * 0.5, WORLD_HEIGHT * 0.5);
       world.addChild(player);
+      let cameraX = Math.max(0, Math.min(WORLD_WIDTH - W, player.x - W * 0.5));
+      let cameraY = Math.max(0, Math.min(WORLD_HEIGHT - H, player.y - H * 0.58));
+      let cameraTargetX = cameraX;
+      let cameraTargetY = cameraY;
+      world.pos(-cameraX, -cameraY);
       const weaponSprite = new Laya.Sprite();
       weaponSprite.visible = false;
       player.addChild(weaponSprite);
@@ -138,8 +151,8 @@
       let gameOver = false;
       let paused = !gameStarted;
       let dragging = false;
-      let pointerX = player.x;
-      let pointerY = player.y;
+      let pointerX = W * 0.5;
+      let pointerY = H * 0.58;
       let hp = 100;
       let maxHp = 100;
       let armor = 0;
@@ -198,10 +211,10 @@
         stageHeight: H,
         engine: "LayaAir",
         engineVersion: "3.4.0",
-        version: "0.6.0-frame-clip-animation",
+        version: "0.7.0-large-world-camera",
         artVersion: "v1-runtime-baked-v2",
         animationVersion: "frame-clips-v3",
-        layoutVersion: "mobile-responsive-v1",
+        layoutVersion: "large-world-camera-v1",
         mobilePortraitLayout,
         viewportWidth: viewportW,
         viewportHeight: viewportH,
@@ -233,7 +246,13 @@
         bossMaxHp,
         bossDefeated,
         victory,
-        running: gameStarted
+        running: gameStarted,
+        worldWidth: WORLD_WIDTH,
+        worldHeight: WORLD_HEIGHT,
+        cameraX,
+        cameraY,
+        cameraDeadZone: { left: deadLeft, right: deadRight, top: deadTop, bottom: deadBottom },
+        largeWorldCamera: true
       };
       win.__XIANG_AI_LAYA__ = probe;
       if (!fast) showStartScreen();
@@ -322,34 +341,16 @@
       }
       function drawWorld() {
         const bg = new Laya.Sprite();
-        bg.graphics.drawRect(0, 0, W, H, "#08111c");
-        for (let x = 0; x <= W; x += 72) bg.graphics.drawLine(x, 0, x, H, "#10253a", 1);
-        for (let y = 0; y <= H; y += 72) bg.graphics.drawLine(0, y, W, y, "#10253a", 1);
+        bg.graphics.drawRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT, "#07131f");
         world.addChild(bg);
-        const road = new Laya.Sprite();
-        road.graphics.drawRect(0, H * 0.34, W, 86, "#0d1a27");
-        road.graphics.drawRect(W * 0.36, playTop, 92, playBottom - playTop, "#0d1a27");
-        for (let x = 18; x < W; x += 92) road.graphics.drawRect(x, H * 0.34 + 41, 46, 4, "#25384a");
-        for (let y = playTop + 22; y < playBottom; y += 92) road.graphics.drawRect(W * 0.36 + 44, y, 4, 46, "#25384a");
-        world.addChild(road);
-        const city = new Laya.Sprite();
-        const blocks = [
-          [28, 190, 88, 66],
-          [145, 178, 74, 52],
-          [W - 125, 185, 94, 78],
-          [24, H * 0.49, 105, 63],
-          [W - 145, H * 0.48, 118, 67],
-          [45, H - 205, 110, 72],
-          [W - 180, H - 218, 132, 78]
-        ];
-        blocks.forEach((b, i) => {
-          city.graphics.drawRoundRect(b[0], b[1], b[2], b[3], 10, i % 2 ? "#10263a" : "#132d40");
-          city.graphics.drawRoundRect(b[0] + 8, b[1] + 8, b[2] - 16, 9, 4, "#193b50");
-          for (let wx = b[0] + 16; wx < b[0] + b[2] - 10; wx += 24) {
-            city.graphics.drawCircle(wx, b[1] + 32, 3, "#2c5368");
-          }
-        });
-        world.addChild(city);
+        const map = new Laya.Sprite();
+        map.loadImage(MAP_SVG_DATA, 0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+        map.mouseEnabled = false;
+        world.addChild(map);
+        const edge = new Laya.Sprite();
+        edge.graphics.drawRect(2, 2, WORLD_WIDTH - 4, WORLD_HEIGHT - 4, null, "#32cbea66", 6);
+        edge.mouseEnabled = false;
+        world.addChild(edge);
       }
       function drawPlayer(s) {
         const shadow = new Laya.Sprite();
@@ -840,24 +841,31 @@
       function spawnEnemy(forceShield = false) {
         if (enemies.length >= 180) return;
         const kind = chooseEnemyKind(forceShield);
-        const side = Math.floor(Math.random() * 4);
-        let x = 0;
-        let y = 0;
-        if (side === 0) {
-          x = margin;
-          y = playTop + Math.random() * (playBottom - playTop);
+        const pad = 90;
+        const candidates = [];
+        if (cameraX - pad > WORLD_MARGIN) {
+          candidates.push({ side: 0, x: cameraX - pad, y: clamp(cameraY + 80 + Math.random() * Math.max(40, H - 160), WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN) });
         }
-        if (side === 1) {
-          x = W - margin;
-          y = playTop + Math.random() * (playBottom - playTop);
+        if (cameraX + W + pad < WORLD_WIDTH - WORLD_MARGIN) {
+          candidates.push({ side: 1, x: cameraX + W + pad, y: clamp(cameraY + 80 + Math.random() * Math.max(40, H - 160), WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN) });
         }
-        if (side === 2) {
-          x = margin + Math.random() * (W - margin * 2);
-          y = playTop;
+        if (cameraY - pad > WORLD_MARGIN) {
+          candidates.push({ side: 2, x: clamp(cameraX + 60 + Math.random() * Math.max(40, W - 120), WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN), y: cameraY - pad });
         }
-        if (side === 3) {
-          x = margin + Math.random() * (W - margin * 2);
-          y = playBottom;
+        if (cameraY + H + pad < WORLD_HEIGHT - WORLD_MARGIN) {
+          candidates.push({ side: 3, x: clamp(cameraX + 60 + Math.random() * Math.max(40, W - 120), WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN), y: cameraY + H + pad });
+        }
+        let x;
+        let y;
+        if (candidates.length) {
+          const p = candidates[Math.floor(Math.random() * candidates.length)];
+          x = p.x;
+          y = p.y;
+        } else {
+          const angle = Math.random() * Math.PI * 2;
+          const radius = Math.max(W, H) * 0.58;
+          x = clamp(player.x + Math.cos(angle) * radius, WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN);
+          y = clamp(player.y + Math.sin(angle) * radius, WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN);
         }
         enemies.push(makeEnemy(kind, x, y));
         if (kind === "shield") shieldSpawned++;
@@ -1200,7 +1208,7 @@
         bossShadow.mouseEnabled = false;
         s.addChild(bossShadow);
         attachArt(s, ART.boss, 240, 120, 300, 150, 0, -8);
-        s.pos(W * 0.5, playTop + 110);
+        s.pos(clamp(player.x, 180, WORLD_WIDTH - 180), clamp(player.y - Math.min(300, H * 0.34), 160, WORLD_HEIGHT - 160));
         world.addChild(s);
         bossSprite = s;
         ui.bossText.visible = true;
@@ -1227,8 +1235,8 @@
           }
         }
         const speed = bossPhase === 3 ? 1.9 : bossPhase === 2 ? 1.25 : 0.8;
-        bossSprite.x = W * 0.5 + Math.sin(elapsed * speed) * Math.min(150, W * 0.28);
-        bossSprite.y = playTop + 105 + Math.cos(elapsed * 0.9) * 28;
+        bossSprite.x = clamp(player.x + Math.sin(elapsed * speed) * Math.min(160, W * 0.28), 150, WORLD_WIDTH - 150);
+        bossSprite.y = clamp(player.y - Math.min(280, H * 0.32) + Math.cos(elapsed * 0.9) * 34, 130, WORLD_HEIGHT - 130);
         bossSprite.rotation = Math.sin(elapsed * (bossPhase === 3 ? 1.4 : 0.8)) * (bossPhase === 3 ? 3.5 : 1.8);
         bossSkillCooldown -= dt;
         if (bossSkillCooldown <= 0) {
@@ -1352,7 +1360,7 @@
       function showFloat(text, x, y, color) {
         if (ui.floating.numChildren > 24) return;
         const t = makeText(text, 15, color, true);
-        t.pos(x - 24, y - 30);
+        t.pos(worldToScreenX(x) - 24, worldToScreenY(y) - 30);
         ui.floating.addChild(t);
         let life = 0.52;
         const tick = () => {
@@ -1558,7 +1566,14 @@
         gameOver = false;
         paused = false;
         gameStarted = true;
-        player.pos(W * 0.5, H * 0.58);
+        player.pos(WORLD_WIDTH * 0.5, WORLD_HEIGHT * 0.5);
+        cameraX = Math.max(0, Math.min(WORLD_WIDTH - W, player.x - W * 0.5));
+        cameraY = Math.max(0, Math.min(WORLD_HEIGHT - H, player.y - H * 0.58));
+        cameraTargetX = cameraX;
+        cameraTargetY = cameraY;
+        world.pos(-cameraX, -cameraY);
+        pointerX = W * 0.5;
+        pointerY = H * 0.58;
         spawnEnemy(false);
         spawnEnemy(false);
         flash("重新连接人类神经网络。", "#72f5d0");
@@ -1588,6 +1603,34 @@
       });
       stage.on(Laya.Event.MOUSE_UP, null, () => dragging = false);
       stage.on(Laya.Event.MOUSE_OUT, null, () => dragging = false);
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v));
+      }
+      function updateCamera(dt, snap = false) {
+        const screenX = player.x - cameraX;
+        const screenY = player.y - cameraY;
+        if (screenX < deadLeft) cameraTargetX = player.x - deadLeft;
+        else if (screenX > deadRight) cameraTargetX = player.x - deadRight;
+        if (screenY < deadTop) cameraTargetY = player.y - deadTop;
+        else if (screenY > deadBottom) cameraTargetY = player.y - deadBottom;
+        cameraTargetX = clamp(cameraTargetX, 0, Math.max(0, WORLD_WIDTH - W));
+        cameraTargetY = clamp(cameraTargetY, 0, Math.max(0, WORLD_HEIGHT - H));
+        if (snap) {
+          cameraX = cameraTargetX;
+          cameraY = cameraTargetY;
+        } else {
+          const follow = Math.min(1, dt * 11);
+          cameraX += (cameraTargetX - cameraX) * follow;
+          cameraY += (cameraTargetY - cameraY) * follow;
+        }
+        world.pos(-cameraX, -cameraY);
+      }
+      function worldToScreenX(x) {
+        return x - cameraX;
+      }
+      function worldToScreenY(y) {
+        return y - cameraY;
+      }
       function updatePlayer(dt) {
         let mx = 0;
         let my = 0;
@@ -1596,8 +1639,10 @@
         if (keys["w"] || keys["arrowup"]) my -= 1;
         if (keys["s"] || keys["arrowdown"]) my += 1;
         if (dragging) {
-          const dx = pointerX - player.x;
-          const dy = pointerY - player.y;
+          const playerScreenX = player.x - cameraX;
+          const playerScreenY = player.y - cameraY;
+          const dx = pointerX - playerScreenX;
+          const dy = pointerY - playerScreenY;
           const len = Math.hypot(dx, dy);
           if (len > 12) {
             mx += dx / len;
@@ -1651,8 +1696,9 @@
         } else {
           pose.x *= Math.max(0, 1 - dt * 16);
         }
-        player.x = Math.max(margin, Math.min(W - margin, player.x));
-        player.y = Math.max(playTop, Math.min(playBottom, player.y));
+        player.x = clamp(player.x, WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN);
+        player.y = clamp(player.y, WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN);
+        updateCamera(dt);
       }
       function updateSpawner(dt) {
         const bossFactor = bossActive ? 0.42 : 1;
@@ -1707,7 +1753,7 @@
             if (e.hp <= 0) killEnemy(j);
             if (b.pierce <= 0) consumed = true;
           }
-          if (consumed || b.life <= 0 || b.sprite.x < -50 || b.sprite.x > W + 50 || b.sprite.y < playTop - 70 || b.sprite.y > H + 50) {
+          if (consumed || b.life <= 0 || b.sprite.x < -80 || b.sprite.x > WORLD_WIDTH + 80 || b.sprite.y < -80 || b.sprite.y > WORLD_HEIGHT + 80) {
             b.sprite.removeSelf();
             b.sprite.destroy();
             bullets.splice(i, 1);
@@ -1841,6 +1887,12 @@
         maxEnemiesSeen = Math.max(maxEnemiesSeen, enemies.length);
         probe.playerX = player.x;
         probe.playerY = player.y;
+        probe.playerScreenX = player.x - cameraX;
+        probe.playerScreenY = player.y - cameraY;
+        probe.cameraX = cameraX;
+        probe.cameraY = cameraY;
+        probe.worldX = world.x;
+        probe.worldY = world.y;
         probe.hp = hp;
         probe.level = level;
         probe.xpCollected = xpCollected;
