@@ -194,9 +194,12 @@ jobs:
               { timeout: 20000 }
             );
 
-            const x0 = await page.evaluate(() => window.__XIANG_AI_LAYA__.playerX);
+            const initial = await page.evaluate(() => ({
+              playerX: window.__XIANG_AI_LAYA__.playerX,
+              cameraX: window.__XIANG_AI_LAYA__.cameraX
+            }));
             await page.keyboard.down('d');
-            await page.waitForTimeout(450);
+            await page.waitForTimeout(900);
             await page.keyboard.up('d');
 
             await page.waitForFunction(
@@ -213,7 +216,11 @@ jobs:
             console.log('Laya live state:', JSON.stringify(state, null, 2));
 
             if (!state.canvas) throw new Error('Laya canvas missing');
-            if (state.game.playerX <= x0 + 2) throw new Error('Laya movement failed');
+            if (state.game.playerX <= initial.playerX + 2) throw new Error('Laya movement failed');
+            if (!state.game.largeWorldCamera) throw new Error('Live large world camera is not active');
+            if (state.game.worldWidth < 1800 || state.game.worldHeight < 1800) throw new Error('Live world is not large enough');
+            if (state.game.cameraX <= initial.cameraX + 12) throw new Error('Live horizontal camera follow did not activate');
+            if (state.game.playerScreenX > state.game.cameraDeadZone.right + 40) throw new Error('Live player escaped camera dead zone');
             if (state.game.shots <= 0) throw new Error('Laya auto-fire failed');
             if (!state.game.frameClipAnimation) throw new Error('Live frame clip animation system is not active');
             if (!state.game.playerFrameClipReady) throw new Error('Live player run clips are not ready');
