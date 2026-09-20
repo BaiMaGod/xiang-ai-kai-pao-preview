@@ -75,12 +75,82 @@ export async function main() {
     }
 
     stage.bgColor = "#08111c";
-    stage.scaleMode = Laya.Stage.SCALE_FIXED_AUTO;
-    stage.alignH = Laya.Stage.ALIGN_CENTER;
-    stage.alignV = Laya.Stage.ALIGN_MIDDLE;
 
-    const W = Math.max(stage.width || 540, 540);
-    const H = Math.max(stage.height || 960, 720);
+    // Mobile-first responsive layout.
+    // The generated Laya template starts as a 1334x750 landscape project,
+    // so we must replace the design resolution and force a canvas resize
+    // before any gameplay coordinates are calculated.
+    const viewportW = Math.max(1, Laya.Browser.clientWidth || win.innerWidth || 540);
+    const viewportH = Math.max(1, Laya.Browser.clientHeight || win.innerHeight || 960);
+    const mobilePortraitLayout = !!Laya.Browser.onMobile || viewportH > viewportW;
+
+    if (mobilePortraitLayout) {
+        stage.designWidth = 540;
+        stage.designHeight = 960;
+        stage.scaleMode = Laya.Stage.SCALE_FIXED_WIDTH;
+        stage.alignH = Laya.Stage.ALIGN_CENTER;
+        stage.alignV = Laya.Stage.ALIGN_TOP;
+        if (Laya.Browser.onMobile) stage.screenMode = Laya.Stage.SCREEN_VERTICAL;
+    } else {
+        // Keep the useful desktop-wide preview instead of forcing a phone frame on PC.
+        stage.designWidth = 1334;
+        stage.designHeight = 750;
+        stage.scaleMode = Laya.Stage.SCALE_FIXED_HEIGHT;
+        stage.alignH = Laya.Stage.ALIGN_CENTER;
+        stage.alignV = Laya.Stage.ALIGN_MIDDLE;
+        stage.screenMode = Laya.Stage.SCREEN_NONE;
+    }
+
+    stage.updateCanvasSize();
+
+    const doc: any = (win as any).document;
+    if (doc?.documentElement && doc?.body) {
+        let viewportMeta = doc.querySelector('meta[name="viewport"]');
+        if (!viewportMeta) {
+            viewportMeta = doc.createElement("meta");
+            viewportMeta.name = "viewport";
+            doc.head?.appendChild(viewportMeta);
+        }
+        viewportMeta.setAttribute(
+            "content",
+            "width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"
+        );
+
+        const rootStyle = doc.documentElement.style;
+        rootStyle.margin = "0";
+        rootStyle.padding = "0";
+        rootStyle.width = "100%";
+        rootStyle.height = "100%";
+        rootStyle.overflow = "hidden";
+        rootStyle.background = "#08111c";
+
+        const bodyStyle = doc.body.style;
+        bodyStyle.margin = "0";
+        bodyStyle.padding = "0";
+        bodyStyle.position = "fixed";
+        bodyStyle.inset = "0";
+        bodyStyle.width = "100vw";
+        bodyStyle.height = "100dvh";
+        bodyStyle.overflow = "hidden";
+        bodyStyle.background = "#08111c";
+        bodyStyle.touchAction = "none";
+        bodyStyle.overscrollBehavior = "none";
+
+        const container: any = Laya.Browser.container;
+        if (container?.style) {
+            container.style.position = "fixed";
+            container.style.left = "0";
+            container.style.top = "0";
+            container.style.width = "100%";
+            container.style.height = "100%";
+            container.style.overflow = "hidden";
+            container.style.background = "#08111c";
+            container.style.touchAction = "none";
+        }
+    }
+
+    const W = Math.max(1, stage.width);
+    const H = Math.max(1, stage.height);
     const margin = 34;
     const playTop = 150;
     const playBottom = H - 50;
@@ -180,9 +250,15 @@ export async function main() {
         stageHeight: H,
         engine: "LayaAir",
         engineVersion: "3.4.0",
-        version: "0.5.1-dynamic-art-pass",
+        version: "0.5.2-mobile-responsive",
         artVersion: "v1",
         animationVersion: "procedural-v1",
+        layoutVersion: "mobile-responsive-v1",
+        mobilePortraitLayout,
+        viewportWidth: viewportW,
+        viewportHeight: viewportH,
+        designWidth: stage.designWidth,
+        designHeight: stage.designHeight,
         artLoadFailures,
         codeFirst: true,
         fast,
@@ -1844,6 +1920,10 @@ export async function main() {
         probe.running = gameStarted && !gameOver && !victory;
         probe.artLoadFailures = artLoadFailures;
         probe.animatedEnemies = enemies.filter(e => !!e.art).length;
+        probe.stageWidth = stage.width;
+        probe.stageHeight = stage.height;
+        probe.designWidth = stage.designWidth;
+        probe.designHeight = stage.designHeight;
         probe.elapsed = elapsed;
     }
 
