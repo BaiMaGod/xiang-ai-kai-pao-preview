@@ -24,6 +24,7 @@
   // src/Entry.ts
   function main() {
     return __async(this, null, function* () {
+      var _a;
       const stage = Laya.stage;
       const win = Laya.Browser.window;
       const fast = new URLSearchParams(win.location.search).get("fast") === "1";
@@ -50,11 +51,69 @@
         if (!Laya.loader.getRes(url)) artLoadFailures.push(url);
       }
       stage.bgColor = "#08111c";
-      stage.scaleMode = Laya.Stage.SCALE_FIXED_AUTO;
-      stage.alignH = Laya.Stage.ALIGN_CENTER;
-      stage.alignV = Laya.Stage.ALIGN_MIDDLE;
-      const W = Math.max(stage.width || 540, 540);
-      const H = Math.max(stage.height || 960, 720);
+      const viewportW = Math.max(1, Laya.Browser.clientWidth || win.innerWidth || 540);
+      const viewportH = Math.max(1, Laya.Browser.clientHeight || win.innerHeight || 960);
+      const mobilePortraitLayout = !!Laya.Browser.onMobile || viewportH > viewportW;
+      if (mobilePortraitLayout) {
+        stage.designWidth = 540;
+        stage.designHeight = 960;
+        stage.scaleMode = Laya.Stage.SCALE_FIXED_WIDTH;
+        stage.alignH = Laya.Stage.ALIGN_CENTER;
+        stage.alignV = Laya.Stage.ALIGN_TOP;
+        if (Laya.Browser.onMobile) stage.screenMode = Laya.Stage.SCREEN_VERTICAL;
+      } else {
+        stage.designWidth = 1334;
+        stage.designHeight = 750;
+        stage.scaleMode = Laya.Stage.SCALE_FIXED_HEIGHT;
+        stage.alignH = Laya.Stage.ALIGN_CENTER;
+        stage.alignV = Laya.Stage.ALIGN_MIDDLE;
+        stage.screenMode = Laya.Stage.SCREEN_NONE;
+      }
+      stage.updateCanvasSize();
+      const doc = win.document;
+      if ((doc == null ? void 0 : doc.documentElement) && (doc == null ? void 0 : doc.body)) {
+        let viewportMeta = doc.querySelector('meta[name="viewport"]');
+        if (!viewportMeta) {
+          viewportMeta = doc.createElement("meta");
+          viewportMeta.name = "viewport";
+          (_a = doc.head) == null ? void 0 : _a.appendChild(viewportMeta);
+        }
+        viewportMeta.setAttribute(
+          "content",
+          "width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"
+        );
+        const rootStyle = doc.documentElement.style;
+        rootStyle.margin = "0";
+        rootStyle.padding = "0";
+        rootStyle.width = "100%";
+        rootStyle.height = "100%";
+        rootStyle.overflow = "hidden";
+        rootStyle.background = "#08111c";
+        const bodyStyle = doc.body.style;
+        bodyStyle.margin = "0";
+        bodyStyle.padding = "0";
+        bodyStyle.position = "fixed";
+        bodyStyle.inset = "0";
+        bodyStyle.width = "100vw";
+        bodyStyle.height = "100dvh";
+        bodyStyle.overflow = "hidden";
+        bodyStyle.background = "#08111c";
+        bodyStyle.touchAction = "none";
+        bodyStyle.overscrollBehavior = "none";
+        const container = Laya.Browser.container;
+        if (container == null ? void 0 : container.style) {
+          container.style.position = "fixed";
+          container.style.left = "0";
+          container.style.top = "0";
+          container.style.width = "100%";
+          container.style.height = "100%";
+          container.style.overflow = "hidden";
+          container.style.background = "#08111c";
+          container.style.touchAction = "none";
+        }
+      }
+      const W = Math.max(1, stage.width);
+      const H = Math.max(1, stage.height);
       const margin = 34;
       const playTop = 150;
       const playBottom = H - 50;
@@ -139,9 +198,15 @@
         stageHeight: H,
         engine: "LayaAir",
         engineVersion: "3.4.0",
-        version: "0.5.1-dynamic-art-pass",
+        version: "0.5.2-mobile-responsive",
         artVersion: "v1",
         animationVersion: "procedural-v1",
+        layoutVersion: "mobile-responsive-v1",
+        mobilePortraitLayout,
+        viewportWidth: viewportW,
+        viewportHeight: viewportH,
+        designWidth: stage.designWidth,
+        designHeight: stage.designHeight,
         artLoadFailures,
         codeFirst: true,
         fast,
@@ -425,9 +490,9 @@
         startGameAction = startGame;
         probe.startScreen = true;
         probe.startButton = { x: bx, y: by, width: bw, height: 72 };
-        const doc = win.document;
-        if (doc == null ? void 0 : doc.body) {
-          const domBtn = doc.createElement("button");
+        const doc2 = win.document;
+        if (doc2 == null ? void 0 : doc2.body) {
+          const domBtn = doc2.createElement("button");
           domBtn.id = "start-game-dom";
           domBtn.type = "button";
           domBtn.textContent = "▶  开始反抗";
@@ -459,7 +524,7 @@
             domBtn.style.transform = "translate(-50%, -50%) scale(1)";
           });
           domBtn.addEventListener("click", startGame);
-          doc.body.appendChild(domBtn);
+          doc2.body.appendChild(domBtn);
           webStartButton = domBtn;
           probe.webStartButton = true;
         }
@@ -682,10 +747,10 @@
         probe.modalType = "";
       }
       function showWebChoiceModal(type, title, subtitle, choices, onChoose) {
-        const doc = win.document;
-        if (!(doc == null ? void 0 : doc.body)) return false;
+        const doc2 = win.document;
+        if (!(doc2 == null ? void 0 : doc2.body)) return false;
         clearWebModal();
-        const overlay = doc.createElement("div");
+        const overlay = doc2.createElement("div");
         overlay.id = "game-choice-modal";
         overlay.dataset.modalType = type;
         overlay.style.position = "fixed";
@@ -700,7 +765,7 @@
         overlay.style.fontFamily = "Arial, sans-serif";
         overlay.style.userSelect = "none";
         overlay.style.touchAction = "manipulation";
-        const panel = doc.createElement("div");
+        const panel = doc2.createElement("div");
         panel.style.width = "min(500px, calc(100vw - 34px))";
         panel.style.padding = "26px 22px 22px";
         panel.style.boxSizing = "border-box";
@@ -709,7 +774,7 @@
         panel.style.background = "linear-gradient(180deg,#10283a 0%,#091521 100%)";
         panel.style.boxShadow = "0 20px 80px rgba(0,0,0,.55)";
         overlay.appendChild(panel);
-        const h = doc.createElement("div");
+        const h = doc2.createElement("div");
         h.textContent = title;
         h.style.color = "#FFFFFF";
         h.style.fontSize = "30px";
@@ -717,7 +782,7 @@
         h.style.textAlign = "center";
         panel.appendChild(h);
         if (subtitle) {
-          const sub = doc.createElement("div");
+          const sub = doc2.createElement("div");
           sub.textContent = subtitle;
           sub.style.color = "#9FB5C5";
           sub.style.fontSize = "16px";
@@ -726,12 +791,12 @@
           sub.style.margin = "10px 0 20px";
           panel.appendChild(sub);
         }
-        const list = doc.createElement("div");
+        const list = doc2.createElement("div");
         list.style.display = "grid";
         list.style.gap = "12px";
         panel.appendChild(list);
         choices.forEach((choice, index) => {
-          const b = doc.createElement("button");
+          const b = doc2.createElement("button");
           b.type = "button";
           b.className = "game-choice-button";
           b.dataset.choiceId = choice.id;
@@ -747,12 +812,12 @@
           b.style.textAlign = "left";
           b.style.cursor = "pointer";
           b.style.touchAction = "manipulation";
-          const name = doc.createElement("div");
+          const name = doc2.createElement("div");
           name.textContent = index + 1 + ". " + choice.name;
           name.style.fontSize = "20px";
           name.style.fontWeight = "800";
           b.appendChild(name);
-          const desc = doc.createElement("div");
+          const desc = doc2.createElement("div");
           desc.textContent = choice.desc;
           desc.style.color = "#A9BECC";
           desc.style.fontSize = "15px";
@@ -769,7 +834,7 @@
           b.addEventListener("click", () => onChoose(choice.id));
           list.appendChild(b);
         });
-        doc.body.appendChild(overlay);
+        doc2.body.appendChild(overlay);
         webModalOverlay = overlay;
         probe.modalType = type;
         probe.modalChoices = choices.map((x) => x.id);
@@ -1606,6 +1671,10 @@
         probe.running = gameStarted && !gameOver && !victory;
         probe.artLoadFailures = artLoadFailures;
         probe.animatedEnemies = enemies.filter((e) => !!e.art).length;
+        probe.stageWidth = stage.width;
+        probe.stageHeight = stage.height;
+        probe.designWidth = stage.designWidth;
+        probe.designHeight = stage.designHeight;
         probe.elapsed = elapsed;
       }
       function loop() {
