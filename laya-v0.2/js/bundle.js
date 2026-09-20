@@ -198,9 +198,9 @@
         stageHeight: H,
         engine: "LayaAir",
         engineVersion: "3.4.0",
-        version: "0.5.2-mobile-responsive",
+        version: "0.5.3-integrated-parts-animation",
         artVersion: "v1",
-        animationVersion: "procedural-v1",
+        animationVersion: "integrated-texture-parts-v2",
         layoutVersion: "mobile-responsive-v1",
         mobilePortraitLayout,
         viewportWidth: viewportW,
@@ -270,25 +270,21 @@
         parent.addChild(art);
         return art;
       }
-      function makeWheel(parent, x, y, radius = 7) {
-        const w = new Laya.Sprite();
-        w.pos(x, y);
-        w.graphics.drawCircle(0, 0, radius, "#101820", "#657a8d", 2);
-        w.graphics.drawLine(-radius + 2, 0, radius - 2, 0, "#b8c7d2", 2);
-        w.graphics.drawLine(0, -radius + 2, 0, radius - 2, "#b8c7d2", 2);
-        w.mouseEnabled = false;
-        parent.addChild(w);
-        return w;
-      }
-      function makeLeg(parent, x, y) {
-        const leg = new Laya.Sprite();
-        leg.pos(x, y);
-        leg.graphics.drawRoundRect(-3, 0, 6, 19, 3, "#506577");
-        leg.graphics.drawCircle(0, 18, 4, "#182633");
-        leg.pivot(0, 2);
-        leg.mouseEnabled = false;
-        parent.addChild(leg);
-        return leg;
+      function attachTexturePart(parent, url, sourceX, sourceY, sourceW, sourceH, targetW, targetH, offsetX = 0, offsetY = 0) {
+        const base = Laya.loader.getRes(url);
+        if (!base) return null;
+        const part = new Laya.Sprite();
+        try {
+          const tex = Laya.Texture.createFromTexture(base, sourceX, sourceY, sourceW, sourceH);
+          part.graphics.drawTexture(tex, -targetW * 0.5, -targetH * 0.5, targetW, targetH);
+          part.pos(offsetX, offsetY);
+          part.mouseEnabled = false;
+          parent.addChild(part);
+          return part;
+        } catch (err) {
+          console.warn("Texture part crop failed:", url, err);
+          return null;
+        }
       }
       function spawnHitFx(x, y) {
         const fx = new Laya.Sprite();
@@ -335,15 +331,26 @@
       }
       function drawPlayer(s) {
         const shadow = new Laya.Sprite();
-        shadow.graphics.drawEllipse(-25, 24, 50, 17, "#00000066");
+        shadow.graphics.drawEllipse(-25, 25, 50, 16, "#00000066");
         shadow.mouseEnabled = false;
         s.addChild(shadow);
-        const art = attachArt(s, ART.player, 160, 180, 78, 88, 0, -7);
+        const pose = new Laya.Sprite();
+        pose.pos(0, -5);
+        s.addChild(pose);
+        let body = attachTexturePart(pose, ART.player, 0, 0, 160, 142, 78, 69, 0, -8);
+        let legL = attachTexturePart(pose, ART.player, 37, 112, 48, 68, 24, 34, -9, 22);
+        let legR = attachTexturePart(pose, ART.player, 76, 112, 48, 68, 24, 34, 9, 22);
+        if (!body || !legL || !legR) {
+          pose.removeChildren();
+          body = attachArt(pose, ART.player, 160, 180, 78, 88, 0, -7);
+          legL = null;
+          legR = null;
+        }
         const ring = new Laya.Sprite();
-        ring.graphics.drawCircle(0, 26, 29, null, "#41e7e0aa", 2);
+        ring.graphics.drawCircle(0, 28, 29, null, "#41e7e0aa", 2);
         ring.mouseEnabled = false;
         s.addChildAt(ring, 0);
-        return { art, shadow, ring };
+        return { pose, body, legL, legR, shadow, ring };
       }
       function createUI() {
         const hud = new Laya.Sprite();
@@ -577,49 +584,43 @@
       function makeEnemy(kind, x, y) {
         const s = new Laya.Sprite();
         const shadow = new Laya.Sprite();
-        shadow.graphics.drawEllipse(-24, 15, 48, 15, "#00000066");
+        shadow.graphics.drawEllipse(-24, 17, 48, 14, "#00000066");
         shadow.mouseEnabled = false;
         s.addChild(shadow);
-        let art;
-        let wheelL = null;
-        let wheelR = null;
-        let rotor = null;
-        let legA = null;
-        let legB = null;
-        let glow = null;
+        const pose = new Laya.Sprite();
+        s.addChild(pose);
+        let art = null;
+        let partA = null;
+        let partB = null;
         if (kind === "vacuum") {
-          rotor = new Laya.Sprite();
-          rotor.pos(0, 11);
-          rotor.graphics.drawCircle(0, 0, 15, "#0c1720", "#58d7e9", 2);
-          rotor.graphics.drawLine(-12, 0, 12, 0, "#77ecff", 2);
-          rotor.graphics.drawLine(0, -12, 0, 12, "#77ecff", 2);
-          rotor.mouseEnabled = false;
-          s.addChild(rotor);
-          art = attachArt(s, ART.vacuum, 128, 128, 58, 58, 0, -5);
+          art = attachArt(pose, ART.vacuum, 128, 128, 58, 58, 0, -5);
         } else if (kind === "delivery") {
-          wheelL = makeWheel(s, -17, 13, 7);
-          wheelR = makeWheel(s, 17, 13, 7);
-          art = attachArt(s, ART.delivery, 132, 128, 62, 60, 0, -5);
-          glow = new Laya.Sprite();
-          glow.pos(0, -22);
-          glow.graphics.drawCircle(0, 0, 4, "#ff334e");
-          glow.graphics.drawCircle(0, 0, 8, "#ff334e33");
-          glow.mouseEnabled = false;
-          s.addChild(glow);
+          art = attachTexturePart(pose, ART.delivery, 0, 0, 132, 96, 62, 45, 0, -10);
+          partA = attachTexturePart(pose, ART.delivery, 4, 72, 52, 56, 24, 26, -16, 11);
+          partB = attachTexturePart(pose, ART.delivery, 76, 72, 52, 56, 24, 26, 16, 11);
+          if (!art || !partA || !partB) {
+            pose.removeChildren();
+            art = attachArt(pose, ART.delivery, 132, 128, 62, 60, 0, -5);
+            partA = null;
+            partB = null;
+          }
         } else if (kind === "dog") {
-          legA = makeLeg(s, -14, 7);
-          legB = makeLeg(s, 14, 7);
-          art = attachArt(s, ART.dog, 148, 128, 70, 61, 0, -8);
+          art = attachTexturePart(pose, ART.dog, 0, 0, 148, 100, 70, 47, 0, -12);
+          partA = attachTexturePart(pose, ART.dog, 16, 70, 58, 58, 27, 27, -14, 11);
+          partB = attachTexturePart(pose, ART.dog, 74, 70, 58, 58, 27, 27, 14, 11);
+          if (!art || !partA || !partB) {
+            pose.removeChildren();
+            art = attachArt(pose, ART.dog, 148, 128, 70, 61, 0, -8);
+            partA = null;
+            partB = null;
+          }
         } else {
-          glow = new Laya.Sprite();
-          glow.graphics.drawCircle(-24, -1, 24, "#47d8ff16", "#65ddff66", 2);
-          glow.mouseEnabled = false;
-          s.addChild(glow);
-          art = attachArt(s, ART.shield, 102, 120, 66, 78, 0, -8);
+          art = attachArt(pose, ART.shield, 102, 120, 66, 78, 0, -8);
         }
-        const ready = !!art.__artReady;
+        const ready = !!art && art.__artReady !== false;
         shadow.visible = ready;
         if (!ready) {
+          shadow.visible = false;
           console.warn("Enemy art fallback:", kind);
         }
         s.pos(x, y);
@@ -633,6 +634,7 @@
         const d = data[kind];
         return {
           sprite: s,
+          pose,
           art,
           shadow,
           kind,
@@ -644,12 +646,8 @@
           stunned: 0,
           contactCd: 0,
           animTime: Math.random() * Math.PI * 2,
-          wheelL,
-          wheelR,
-          rotor,
-          legA,
-          legB,
-          glow
+          partA,
+          partB
         };
       }
       function spawnEnemy(forceShield = false) {
@@ -1421,35 +1419,46 @@
         }
         const ml = Math.hypot(mx, my);
         playerRecoil = Math.max(0, playerRecoil - dt * 9.5);
-        const art = playerVisual.art;
-        const baseSX = Math.abs(art.__baseScaleX || 1);
-        const baseSY = art.__baseScaleY || 1;
+        const pose = playerVisual.pose;
+        const body = playerVisual.body;
         if (ml > 0) {
           const nx = mx / ml;
           const ny = my / ml;
           player.x += nx * moveSpeed * dt;
           player.y += ny * moveSpeed * dt;
-          playerWalkPhase += dt * 11.5;
+          playerWalkPhase += dt * 12.5;
           const step = Math.sin(playerWalkPhase);
           const lift = Math.abs(Math.sin(playerWalkPhase * 0.5));
-          art.y = -7 - lift * 2.8;
-          art.rotation = step * 2.6 - playerRecoil * 2.2;
-          art.scaleX = nx < -0.08 ? -baseSX : nx > 0.08 ? baseSX : art.scaleX;
-          art.scaleY = baseSY * (1 + lift * 0.018);
-          playerVisual.shadow.scaleX = 1 - lift * 0.07;
+          pose.scaleX = nx < -0.08 ? -1 : nx > 0.08 ? 1 : pose.scaleX || 1;
+          pose.y = -5 - lift * 2.2;
+          body.rotation = step * 2.1 - playerRecoil * 2.2;
+          if (playerVisual.legL && playerVisual.legR) {
+            playerVisual.legL.rotation = step * 24;
+            playerVisual.legR.rotation = -step * 24;
+            playerVisual.legL.y = 22 + Math.max(0, -step) * 2.2;
+            playerVisual.legR.y = 22 + Math.max(0, step) * 2.2;
+          }
+          playerVisual.shadow.scaleX = 1 - lift * 0.08;
           playerVisual.shadow.scaleY = 1 - lift * 0.05;
           playerVisual.ring.alpha = 0.62 + lift * 0.3;
         } else {
-          playerWalkPhase += dt * 2.4;
-          art.y = -7 + Math.sin(playerWalkPhase) * 0.7;
-          art.rotation *= Math.max(0, 1 - dt * 12);
-          art.scaleY = baseSY;
+          playerWalkPhase += dt * 2.2;
+          pose.y = -5 + Math.sin(playerWalkPhase) * 0.6;
+          body.rotation *= Math.max(0, 1 - dt * 12);
+          if (playerVisual.legL && playerVisual.legR) {
+            playerVisual.legL.rotation *= Math.max(0, 1 - dt * 14);
+            playerVisual.legR.rotation *= Math.max(0, 1 - dt * 14);
+            playerVisual.legL.y += (22 - playerVisual.legL.y) * Math.min(1, dt * 12);
+            playerVisual.legR.y += (22 - playerVisual.legR.y) * Math.min(1, dt * 12);
+          }
           playerVisual.shadow.scaleX = 1;
           playerVisual.shadow.scaleY = 1;
           playerVisual.ring.alpha = 0.72 + Math.sin(playerWalkPhase) * 0.08;
         }
         if (playerRecoil > 0) {
-          art.y += playerRecoil * 1.8;
+          pose.x = -playerRecoil * 2.2;
+        } else {
+          pose.x *= Math.max(0, 1 - dt * 16);
         }
         player.x = Math.max(margin, Math.min(W - margin, player.x));
         player.y = Math.max(playTop, Math.min(playBottom, player.y));
@@ -1535,42 +1544,36 @@
           e.sprite.x += nx * e.speed * dt;
           e.sprite.y += ny * e.speed * dt;
           const art = e.art;
-          const baseSX = Math.abs(art.__baseScaleX || 1);
-          const baseSY = art.__baseScaleY || 1;
+          const pose = e.pose;
           if (e.kind !== "shield") {
-            art.scaleX = nx < -0.08 ? -baseSX : nx > 0.08 ? baseSX : art.scaleX;
+            pose.scaleX = nx < -0.08 ? -1 : nx > 0.08 ? 1 : pose.scaleX || 1;
           }
           if (e.kind === "vacuum") {
-            if (e.rotor) e.rotor.rotation += 430 * dt;
-            art.y = -5 + Math.sin(e.animTime * 7) * 0.8;
-            art.rotation = Math.sin(e.animTime * 5.5) * 1.2;
-            e.shadow.scaleX = 1 + Math.sin(e.animTime * 7) * 0.025;
+            const pulse = Math.sin(e.animTime * 8);
+            pose.y = -Math.abs(pulse) * 0.8;
+            art.rotation = pulse * 1.4;
+            e.shadow.scaleX = 1 + pulse * 0.025;
           } else if (e.kind === "delivery") {
-            const wheelSpin = e.speed * dt * 8.5;
-            if (e.wheelL) e.wheelL.rotation += wheelSpin;
-            if (e.wheelR) e.wheelR.rotation += wheelSpin;
-            const bump = Math.abs(Math.sin(e.animTime * 10));
-            art.y = -5 - bump * 1.4;
-            art.rotation = Math.sin(e.animTime * 8) * 0.9;
-            e.shadow.scaleX = 1 - bump * 0.035;
-            if (e.glow) e.glow.alpha = 0.45 + (Math.sin(e.animTime * 8) * 0.5 + 0.5) * 0.55;
+            const stride = e.animTime * e.speed * 0.19;
+            const bump = Math.abs(Math.sin(stride * 0.5));
+            pose.y = -bump * 1.1;
+            art.rotation = Math.sin(stride * 0.5) * 0.7;
+            if (e.partA) e.partA.rotation = stride * 180 / Math.PI;
+            if (e.partB) e.partB.rotation = stride * 180 / Math.PI;
+            e.shadow.scaleX = 1 - bump * 0.03;
           } else if (e.kind === "dog") {
-            const stride = Math.sin(e.animTime * 14);
-            if (e.legA) e.legA.rotation = stride * 28;
-            if (e.legB) e.legB.rotation = -stride * 28;
-            const lift = Math.abs(Math.sin(e.animTime * 7));
-            art.y = -8 - lift * 2.3;
-            art.rotation = stride * 1.5;
+            const stride = Math.sin(e.animTime * 13.5);
+            const lift = Math.abs(Math.sin(e.animTime * 6.75));
+            pose.y = -lift * 2;
+            art.rotation = stride * 1.3;
+            if (e.partA) e.partA.rotation = stride * 25;
+            if (e.partB) e.partB.rotation = -stride * 25;
             e.shadow.scaleX = 1 - lift * 0.06;
           } else {
-            const heavyStep = Math.abs(Math.sin(e.animTime * 4.4));
-            art.y = -8 - heavyStep * 1.4;
-            art.rotation = Math.atan2(ny, nx) * 180 / Math.PI;
-            if (e.glow) {
-              e.glow.alpha = 0.34 + (Math.sin(e.animTime * 3.7) * 0.5 + 0.5) * 0.34;
-              e.glow.scaleX = 0.96 + heavyStep * 0.06;
-              e.glow.scaleY = 0.96 + heavyStep * 0.06;
-            }
+            const heavyStep = Math.abs(Math.sin(e.animTime * 4.3));
+            pose.y = -heavyStep * 1.4;
+            pose.rotation = Math.sin(e.animTime * 2.15) * 1.6;
+            e.shadow.scaleX = 1 - heavyStep * 0.025;
           }
           if (!fast && len < e.radius + 20 && hurtCooldown <= 0 && e.contactCd <= 0) {
             const raw = e.kind === "dog" ? 12 : e.kind === "shield" ? 10 : 7;
@@ -1671,6 +1674,8 @@
         probe.running = gameStarted && !gameOver && !victory;
         probe.artLoadFailures = artLoadFailures;
         probe.animatedEnemies = enemies.filter((e) => !!e.art).length;
+        probe.detachedFakeParts = 0;
+        probe.integratedPartsAnimation = true;
         probe.stageWidth = stage.width;
         probe.stageHeight = stage.height;
         probe.designWidth = stage.designWidth;

@@ -1,5 +1,0 @@
-向AI开炮 LayaAir Preview
-version=0.5.2-mobile-responsive
-layout=mobile-responsive-v1
-design=540x960 portrait
-mobile=fixedwidth fullscreen
