@@ -215,6 +215,10 @@ jobs:
             if (!state.canvas) throw new Error('Laya canvas missing');
             if (state.game.playerX <= x0 + 2) throw new Error('Laya movement failed');
             if (state.game.shots <= 0) throw new Error('Laya auto-fire failed');
+            if (!state.game.frameClipAnimation) throw new Error('Live frame clip animation system is not active');
+            if (!state.game.playerFrameClipReady) throw new Error('Live player run clips are not ready');
+            if (state.game.frameAnimatedEnemies <= 0) throw new Error('Live enemy frame clips are not active');
+            if (state.game.artLoadFailures?.length) throw new Error('Live art preload failures: ' + state.game.artLoadFailures.join(','));
             if (!state.game.bossDefeated || !state.game.victory) throw new Error('Laya GPT-0 victory flow failed');
 
             await page.waitForSelector('#game-choice-modal[data-modal-type="VICTORY"]', { state: 'visible', timeout: 5000 });
