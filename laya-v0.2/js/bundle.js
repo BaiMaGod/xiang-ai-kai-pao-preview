@@ -198,9 +198,9 @@
         stageHeight: H,
         engine: "LayaAir",
         engineVersion: "3.4.0",
-        version: "0.5.3-integrated-parts-animation",
-        artVersion: "v1",
-        animationVersion: "integrated-texture-parts-v2",
+        version: "0.6.0-frame-clip-animation",
+        artVersion: "v1-runtime-baked-v2",
+        animationVersion: "frame-clips-v3",
         layoutVersion: "mobile-responsive-v1",
         mobilePortraitLayout,
         viewportWidth: viewportW,
@@ -270,12 +270,18 @@
         parent.addChild(art);
         return art;
       }
+      const texturePartCache = /* @__PURE__ */ new Map();
       function attachTexturePart(parent, url, sourceX, sourceY, sourceW, sourceH, targetW, targetH, offsetX = 0, offsetY = 0) {
         const base = Laya.loader.getRes(url);
         if (!base) return null;
         const part = new Laya.Sprite();
         try {
-          const tex = Laya.Texture.createFromTexture(base, sourceX, sourceY, sourceW, sourceH);
+          const cacheKey = [url, sourceX, sourceY, sourceW, sourceH].join("|");
+          let tex = texturePartCache.get(cacheKey);
+          if (!tex) {
+            tex = Laya.Texture.createFromTexture(base, sourceX, sourceY, sourceW, sourceH);
+            texturePartCache.set(cacheKey, tex);
+          }
           part.graphics.drawTexture(tex, -targetW * 0.5, -targetH * 0.5, targetW, targetH);
           part.pos(offsetX, offsetY);
           part.mouseEnabled = false;
@@ -285,6 +291,22 @@
           console.warn("Texture part crop failed:", url, err);
           return null;
         }
+      }
+      function showFrame(owner, frames, index) {
+        if (!frames || frames.length === 0) return;
+        const n = frames.length;
+        const normalized = (Math.floor(index) % n + n) % n;
+        const next = frames[normalized];
+        if (owner.currentFrame === next) return;
+        if (owner.currentFrame) owner.currentFrame.visible = false;
+        next.visible = true;
+        owner.currentFrame = next;
+        owner.currentFrameIndex = normalized;
+      }
+      function setPlayerClip(visual, clip, frameIndex) {
+        visual.currentClip = clip;
+        if (!visual.animated) return;
+        showFrame(visual, visual.clips[clip], frameIndex);
       }
       function spawnHitFx(x, y) {
         const fx = new Laya.Sprite();
@@ -337,20 +359,116 @@
         const pose = new Laya.Sprite();
         pose.pos(0, -5);
         s.addChild(pose);
-        let body = attachTexturePart(pose, ART.player, 0, 0, 160, 142, 78, 69, 0, -8);
-        let legL = attachTexturePart(pose, ART.player, 37, 112, 48, 68, 24, 34, -9, 22);
-        let legR = attachTexturePart(pose, ART.player, 76, 112, 48, 68, 24, 34, 9, 22);
-        if (!body || !legL || !legR) {
+        const clips = { idle: [], run: [], fire: [], hurt: [] };
+        const baseReady = !!Laya.loader.getRes(ART.player);
+        const sourceW = 160;
+        const sourceH = 180;
+        const sx = 78 / sourceW;
+        const sy = 88 / sourceH;
+        const makeMaskedPart = (parent, maskX, maskY, maskW, maskH, pivotX, pivotY, outX, outY) => {
+          if (!baseReady) return null;
+          const holder = new Laya.Sprite();
+          holder.pos(outX, outY);
+          parent.addChild(holder);
+          const art = new Laya.Sprite();
+          art.size(sourceW, sourceH);
+          art.pivot(pivotX, pivotY);
+          art.scale(sx, sy);
+          art.loadImage(ART.player);
+          art.mouseEnabled = false;
+          const mask = new Laya.Sprite();
+          mask.graphics.drawRect(maskX, maskY, maskW, maskH, "#ffffff");
+          art.mask = mask;
+          holder.addChild(art);
+          return holder;
+        };
+        const makeFrame = (mode, index, count) => {
+          var _a2;
+          if (!baseReady) return null;
+          const phase = index / count * Math.PI * 2;
+          const frame = new Laya.Sprite();
+          frame.visible = false;
+          pose.addChild(frame);
+          const body = makeMaskedPart(frame, 0, 0, 160, 132, 80, 90, 0, -6);
+          const legL = makeMaskedPart(frame, 28, 112, 62, 68, 62, 121, -8, 15);
+          const legR = makeMaskedPart(frame, 72, 112, 66, 68, 102, 121, 8, 15);
+          if (!body || !legL || !legR) {
+            frame.removeSelf();
+            frame.destroy(true);
+            return null;
+          }
+          if (mode === "idle") {
+            const breathe = Math.sin(phase);
+            body.y = -6 - Math.abs(breathe) * 0.7;
+            body.rotation = breathe * 0.5;
+            legL.rotation = breathe * 1.8;
+            legR.rotation = -breathe * 1.8;
+          } else if (mode === "run") {
+            const step = Math.sin(phase);
+            const lift = Math.abs(Math.sin(phase * 0.5));
+            body.y = -6 - lift * 1.7;
+            body.rotation = step * 1.6;
+            legL.rotation = step * 24;
+            legR.rotation = -step * 24;
+            legL.y = 15 + Math.max(0, -step) * 2.6;
+            legR.y = 15 + Math.max(0, step) * 2.6;
+            legL.x = -8 + step * 1.3;
+            legR.x = 8 - step * 1.3;
+          } else if (mode === "fire") {
+            const recoil = (_a2 = [0, 1, 0.55, 0.18][index]) != null ? _a2 : 0;
+            body.x = -recoil * 2.8;
+            body.rotation = -recoil * 2.6;
+            legL.x = -8 - recoil * 0.7;
+            legR.x = 8 - recoil * 0.7;
+            frame.scaleX = 1 - recoil * 0.015;
+            frame.scaleY = 1 + recoil * 0.015;
+          } else {
+            const hit = index === 0 ? -1 : 1;
+            frame.rotation = hit * 4;
+            frame.x = hit * 2;
+            frame.alpha = index === 0 ? 0.7 : 0.92;
+          }
+          return frame;
+        };
+        for (let i = 0; i < 4; i++) {
+          const frame = makeFrame("idle", i, 4);
+          if (frame) clips.idle.push(frame);
+        }
+        for (let i = 0; i < 8; i++) {
+          const frame = makeFrame("run", i, 8);
+          if (frame) clips.run.push(frame);
+        }
+        for (let i = 0; i < 4; i++) {
+          const frame = makeFrame("fire", i, 4);
+          if (frame) clips.fire.push(frame);
+        }
+        for (let i = 0; i < 2; i++) {
+          const frame = makeFrame("hurt", i, 2);
+          if (frame) clips.hurt.push(frame);
+        }
+        const animated = clips.idle.length === 4 && clips.run.length === 8 && clips.fire.length === 4 && clips.hurt.length === 2;
+        let fallbackArt = null;
+        if (!animated) {
           pose.removeChildren();
-          body = attachArt(pose, ART.player, 160, 180, 78, 88, 0, -7);
-          legL = null;
-          legR = null;
+          fallbackArt = attachArt(pose, ART.player, 160, 180, 78, 88, 0, -7);
         }
         const ring = new Laya.Sprite();
         ring.graphics.drawCircle(0, 28, 29, null, "#41e7e0aa", 2);
         ring.mouseEnabled = false;
         s.addChildAt(ring, 0);
-        return { pose, body, legL, legR, shadow, ring };
+        const visual = {
+          pose,
+          shadow,
+          ring,
+          clips,
+          animated,
+          fallbackArt,
+          currentFrame: null,
+          currentFrameIndex: -1,
+          currentClip: "idle"
+        };
+        if (animated) setPlayerClip(visual, "idle", 0);
+        return visual;
       }
       function createUI() {
         const hud = new Laya.Sprite();
@@ -589,39 +707,105 @@
         s.addChild(shadow);
         const pose = new Laya.Sprite();
         s.addChild(pose);
-        let art = null;
-        let partA = null;
-        let partB = null;
+        const visual = new Laya.Sprite();
+        pose.addChild(visual);
+        let frames = [];
+        let artReady = true;
+        const addFullFrame = (url, sourceW, sourceH, targetW, targetH, phase, baseY) => {
+          const frame = new Laya.Sprite();
+          frame.visible = false;
+          visual.addChild(frame);
+          const art2 = attachArt(frame, url, sourceW, sourceH, targetW, targetH, 0, baseY);
+          if (!art2 || art2.__artReady === false) {
+            frame.removeSelf();
+            frame.destroy(true);
+            return null;
+          }
+          const step = Math.sin(phase);
+          frame.rotation = step * 1.1;
+          frame.y = -Math.abs(Math.sin(phase * 0.5)) * 1.2;
+          return frame;
+        };
         if (kind === "vacuum") {
-          art = attachArt(pose, ART.vacuum, 128, 128, 58, 58, 0, -5);
+          for (let i = 0; i < 4; i++) {
+            const frame = addFullFrame(ART.vacuum, 128, 128, 58, 58, i / 4 * Math.PI * 2, -5);
+            if (frame) frames.push(frame);
+          }
+          artReady = frames.length === 4;
         } else if (kind === "delivery") {
-          art = attachTexturePart(pose, ART.delivery, 0, 0, 132, 96, 62, 45, 0, -10);
-          partA = attachTexturePart(pose, ART.delivery, 4, 72, 52, 56, 24, 26, -16, 11);
-          partB = attachTexturePart(pose, ART.delivery, 76, 72, 52, 56, 24, 26, 16, 11);
-          if (!art || !partA || !partB) {
-            pose.removeChildren();
-            art = attachArt(pose, ART.delivery, 132, 128, 62, 60, 0, -5);
-            partA = null;
-            partB = null;
+          for (let i = 0; i < 6; i++) {
+            const phase = i / 6 * Math.PI * 2;
+            const frame = new Laya.Sprite();
+            frame.visible = false;
+            visual.addChild(frame);
+            const body = attachTexturePart(frame, ART.delivery, 0, 0, 132, 96, 62, 45, 0, -10);
+            const wheelL = attachTexturePart(frame, ART.delivery, 4, 72, 52, 56, 24, 26, -16, 11);
+            const wheelR = attachTexturePart(frame, ART.delivery, 76, 72, 52, 56, 24, 26, 16, 11);
+            if (!body || !wheelL || !wheelR) {
+              frame.removeSelf();
+              frame.destroy(true);
+              continue;
+            }
+            const wheelAngle = i * 60;
+            const bump = Math.abs(Math.sin(phase));
+            wheelL.rotation = wheelAngle;
+            wheelR.rotation = wheelAngle;
+            body.y = -10 - bump * 1;
+            frame.y = -bump * 0.8;
+            frames.push(frame);
           }
+          artReady = frames.length === 6;
         } else if (kind === "dog") {
-          art = attachTexturePart(pose, ART.dog, 0, 0, 148, 100, 70, 47, 0, -12);
-          partA = attachTexturePart(pose, ART.dog, 16, 70, 58, 58, 27, 27, -14, 11);
-          partB = attachTexturePart(pose, ART.dog, 74, 70, 58, 58, 27, 27, 14, 11);
-          if (!art || !partA || !partB) {
-            pose.removeChildren();
-            art = attachArt(pose, ART.dog, 148, 128, 70, 61, 0, -8);
-            partA = null;
-            partB = null;
+          for (let i = 0; i < 8; i++) {
+            const phase = i / 8 * Math.PI * 2;
+            const step = Math.sin(phase);
+            const frame = new Laya.Sprite();
+            frame.visible = false;
+            visual.addChild(frame);
+            const body = attachTexturePart(frame, ART.dog, 0, 0, 148, 100, 70, 47, 0, -12);
+            const legA = attachTexturePart(frame, ART.dog, 16, 70, 58, 58, 27, 27, -14, 11);
+            const legB = attachTexturePart(frame, ART.dog, 74, 70, 58, 58, 27, 27, 14, 11);
+            if (!body || !legA || !legB) {
+              frame.removeSelf();
+              frame.destroy(true);
+              continue;
+            }
+            body.rotation = step * 1.5;
+            body.y = -12 - Math.abs(Math.sin(phase * 0.5)) * 1.6;
+            legA.rotation = step * 30;
+            legB.rotation = -step * 30;
+            legA.y = 11 + Math.max(0, -step) * 2.5;
+            legB.y = 11 + Math.max(0, step) * 2.5;
+            frames.push(frame);
           }
+          artReady = frames.length === 8;
         } else {
-          art = attachArt(pose, ART.shield, 102, 120, 66, 78, 0, -8);
+          for (let i = 0; i < 6; i++) {
+            const frame = addFullFrame(ART.shield, 102, 120, 66, 78, i / 6 * Math.PI * 2, -8);
+            if (frame) frames.push(frame);
+          }
+          artReady = frames.length === 6;
         }
-        const ready = !!art && art.__artReady !== false;
-        shadow.visible = ready;
-        if (!ready) {
+        let art = visual;
+        let currentFrame = null;
+        if (!artReady) {
+          pose.removeChildren();
+          const fallbackUrl = kind === "vacuum" ? ART.vacuum : kind === "delivery" ? ART.delivery : kind === "dog" ? ART.dog : ART.shield;
+          const dims = {
+            vacuum: [128, 128, 58, 58, -5],
+            delivery: [132, 128, 62, 60, -5],
+            dog: [148, 128, 70, 61, -8],
+            shield: [102, 120, 66, 78, -8]
+          };
+          const d2 = dims[kind];
+          art = attachArt(pose, fallbackUrl, d2[0], d2[1], d2[2], d2[3], 0, d2[4]);
+          frames = [];
           shadow.visible = false;
-          console.warn("Enemy art fallback:", kind);
+          console.warn("Enemy frame art fallback:", kind);
+        } else {
+          currentFrame = frames[0];
+          currentFrame.visible = true;
+          shadow.visible = true;
         }
         s.pos(x, y);
         world.addChild(s);
@@ -646,8 +830,11 @@
           stunned: 0,
           contactCd: 0,
           animTime: Math.random() * Math.PI * 2,
-          partA,
-          partB
+          partA: null,
+          partB: null,
+          frames,
+          currentFrame,
+          currentFrameIndex: 0
         };
       }
       function spawnEnemy(forceShield = false) {
@@ -1420,43 +1607,47 @@
         const ml = Math.hypot(mx, my);
         playerRecoil = Math.max(0, playerRecoil - dt * 9.5);
         const pose = playerVisual.pose;
-        const body = playerVisual.body;
+        const recentlyHurt = hurtCooldown > 0.28;
         if (ml > 0) {
           const nx = mx / ml;
           const ny = my / ml;
           player.x += nx * moveSpeed * dt;
           player.y += ny * moveSpeed * dt;
-          playerWalkPhase += dt * 12.5;
-          const step = Math.sin(playerWalkPhase);
-          const lift = Math.abs(Math.sin(playerWalkPhase * 0.5));
+          playerWalkPhase += dt * 10.5;
+          const lift = Math.abs(Math.sin(playerWalkPhase * Math.PI / 4));
           pose.scaleX = nx < -0.08 ? -1 : nx > 0.08 ? 1 : pose.scaleX || 1;
-          pose.y = -5 - lift * 2.2;
-          body.rotation = step * 2.1 - playerRecoil * 2.2;
-          if (playerVisual.legL && playerVisual.legR) {
-            playerVisual.legL.rotation = step * 24;
-            playerVisual.legR.rotation = -step * 24;
-            playerVisual.legL.y = 22 + Math.max(0, -step) * 2.2;
-            playerVisual.legR.y = 22 + Math.max(0, step) * 2.2;
+          pose.y = -5 - lift * 1.5;
+          if (recentlyHurt) {
+            setPlayerClip(playerVisual, "hurt", hurtCooldown > 0.36 ? 0 : 1);
+          } else if (playerRecoil > 0.16) {
+            const fireIndex = Math.min(3, Math.max(0, Math.floor((1 - playerRecoil) * 4)));
+            setPlayerClip(playerVisual, "fire", fireIndex);
+          } else {
+            setPlayerClip(playerVisual, "run", Math.floor(playerWalkPhase));
           }
-          playerVisual.shadow.scaleX = 1 - lift * 0.08;
+          playerVisual.shadow.scaleX = 1 - lift * 0.09;
           playerVisual.shadow.scaleY = 1 - lift * 0.05;
           playerVisual.ring.alpha = 0.62 + lift * 0.3;
         } else {
-          playerWalkPhase += dt * 2.2;
-          pose.y = -5 + Math.sin(playerWalkPhase) * 0.6;
-          body.rotation *= Math.max(0, 1 - dt * 12);
-          if (playerVisual.legL && playerVisual.legR) {
-            playerVisual.legL.rotation *= Math.max(0, 1 - dt * 14);
-            playerVisual.legR.rotation *= Math.max(0, 1 - dt * 14);
-            playerVisual.legL.y += (22 - playerVisual.legL.y) * Math.min(1, dt * 12);
-            playerVisual.legR.y += (22 - playerVisual.legR.y) * Math.min(1, dt * 12);
+          playerWalkPhase += dt * 3.2;
+          pose.y = -5 + Math.sin(playerWalkPhase * 0.7) * 0.55;
+          if (recentlyHurt) {
+            setPlayerClip(playerVisual, "hurt", hurtCooldown > 0.36 ? 0 : 1);
+          } else if (playerRecoil > 0.16) {
+            const fireIndex = Math.min(3, Math.max(0, Math.floor((1 - playerRecoil) * 4)));
+            setPlayerClip(playerVisual, "fire", fireIndex);
+          } else {
+            setPlayerClip(playerVisual, "idle", Math.floor(playerWalkPhase));
           }
           playerVisual.shadow.scaleX = 1;
           playerVisual.shadow.scaleY = 1;
           playerVisual.ring.alpha = 0.72 + Math.sin(playerWalkPhase) * 0.08;
         }
+        if (!playerVisual.animated && playerVisual.fallbackArt) {
+          playerVisual.fallbackArt.rotation = ml > 0 ? Math.sin(playerWalkPhase) * 1.5 : 0;
+        }
         if (playerRecoil > 0) {
-          pose.x = -playerRecoil * 2.2;
+          pose.x = -playerRecoil * 2;
         } else {
           pose.x *= Math.max(0, 1 - dt * 16);
         }
@@ -1532,7 +1723,6 @@
           if (e.stunned > 0) {
             e.stunned -= dt;
             e.sprite.alpha = 0.58;
-            if (e.glow) e.glow.alpha = 0.25 + Math.sin(e.animTime * 18) * 0.15;
             continue;
           }
           e.sprite.alpha = 1;
@@ -1549,31 +1739,32 @@
             pose.scaleX = nx < -0.08 ? -1 : nx > 0.08 ? 1 : pose.scaleX || 1;
           }
           if (e.kind === "vacuum") {
+            if (e.frames && e.frames.length) showFrame(e, e.frames, Math.floor(e.animTime * 8));
             const pulse = Math.sin(e.animTime * 8);
-            pose.y = -Math.abs(pulse) * 0.8;
-            art.rotation = pulse * 1.4;
-            e.shadow.scaleX = 1 + pulse * 0.025;
+            pose.y = -Math.abs(pulse) * 0.7;
+            art.rotation = 0;
+            e.shadow.scaleX = 1 + pulse * 0.02;
           } else if (e.kind === "delivery") {
-            const stride = e.animTime * e.speed * 0.19;
-            const bump = Math.abs(Math.sin(stride * 0.5));
-            pose.y = -bump * 1.1;
-            art.rotation = Math.sin(stride * 0.5) * 0.7;
-            if (e.partA) e.partA.rotation = stride * 180 / Math.PI;
-            if (e.partB) e.partB.rotation = stride * 180 / Math.PI;
-            e.shadow.scaleX = 1 - bump * 0.03;
+            if (e.frames && e.frames.length) {
+              const fps = Math.max(7, e.speed * 0.18);
+              showFrame(e, e.frames, Math.floor(e.animTime * fps));
+            }
+            const bump = Math.abs(Math.sin(e.animTime * 7));
+            pose.y = -bump * 0.8;
+            art.rotation = 0;
+            e.shadow.scaleX = 1 - bump * 0.025;
           } else if (e.kind === "dog") {
-            const stride = Math.sin(e.animTime * 13.5);
-            const lift = Math.abs(Math.sin(e.animTime * 6.75));
-            pose.y = -lift * 2;
-            art.rotation = stride * 1.3;
-            if (e.partA) e.partA.rotation = stride * 25;
-            if (e.partB) e.partB.rotation = -stride * 25;
-            e.shadow.scaleX = 1 - lift * 0.06;
+            if (e.frames && e.frames.length) showFrame(e, e.frames, Math.floor(e.animTime * 12.5));
+            const lift = Math.abs(Math.sin(e.animTime * 6.25));
+            pose.y = -lift * 1.25;
+            art.rotation = 0;
+            e.shadow.scaleX = 1 - lift * 0.055;
           } else {
+            if (e.frames && e.frames.length) showFrame(e, e.frames, Math.floor(e.animTime * 6));
             const heavyStep = Math.abs(Math.sin(e.animTime * 4.3));
-            pose.y = -heavyStep * 1.4;
-            pose.rotation = Math.sin(e.animTime * 2.15) * 1.6;
-            e.shadow.scaleX = 1 - heavyStep * 0.025;
+            pose.y = -heavyStep * 0.9;
+            pose.rotation = Math.sin(e.animTime * 2.15) * 1;
+            e.shadow.scaleX = 1 - heavyStep * 0.02;
           }
           if (!fast && len < e.radius + 20 && hurtCooldown <= 0 && e.contactCd <= 0) {
             const raw = e.kind === "dog" ? 12 : e.kind === "shield" ? 10 : 7;
@@ -1674,8 +1865,12 @@
         probe.running = gameStarted && !gameOver && !victory;
         probe.artLoadFailures = artLoadFailures;
         probe.animatedEnemies = enemies.filter((e) => !!e.art).length;
+        probe.frameAnimatedEnemies = enemies.filter((e) => !!e.frames && e.frames.length > 1).length;
+        probe.playerFrameClipReady = !!playerVisual.animated;
+        probe.playerAnimation = playerVisual.currentClip || "fallback";
         probe.detachedFakeParts = 0;
-        probe.integratedPartsAnimation = true;
+        probe.integratedPartsAnimation = false;
+        probe.frameClipAnimation = true;
         probe.stageWidth = stage.width;
         probe.stageHeight = stage.height;
         probe.designWidth = stage.designWidth;
@@ -1696,7 +1891,7 @@
           if (!aiAnalyzed && elapsed >= analysisAt) {
             triggerAIAnalysis();
           }
-          if (aiAnalyzed && !emergencyShown && elapsed >= emergencyEarliest && blockCount >= 3) {
+          if (aiAnalyzed && !emergencyShown && elapsed >= emergencyEarliest && (fast || blockCount >= 3)) {
             showEmergencyProtocol();
           }
           if (!bossWarningShown && elapsed >= bossWarningAt) {
