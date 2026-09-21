@@ -232,6 +232,8 @@ jobs:
             if (!state.game.playerFrameClipReady) throw new Error('Live player run clips are not ready');
             if (state.game.frameAnimatedEnemies <= 0) throw new Error('Live enemy frame clips are not active');
             if (state.game.artLoadFailures?.length) throw new Error('Live art preload failures: ' + state.game.artLoadFailures.join(','));
+            if (!state.game.mapLoadReady) throw new Error('Live selected map texture is not loaded');
+            if (state.game.mapArtMode !== 'real-repository-asset') throw new Error('Live selected map is not using the repository asset');
             if (!state.game.bossDefeated || !state.game.victory) throw new Error('Laya GPT-0 victory flow failed');
 
             await page.waitForSelector('#game-choice-modal[data-modal-type="VICTORY"]', { state: 'visible', timeout: 5000 });
