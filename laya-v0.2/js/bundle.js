@@ -40,7 +40,7 @@
         muzzle: "resources/art/v1/fx_muzzle.png",
         hit: "resources/art/v1/fx_hit.png"
       };
-      const MAP_SVG_DATA = "data:image/svg+xml;charset=utf-8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="2200" viewBox="0 0 2200 2200">\n<defs>\n  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">\n    <stop offset="0" stop-color="#07131f"/><stop offset=".55" stop-color="#0a1826"/><stop offset="1" stop-color="#06111b"/>\n  </linearGradient>\n  <pattern id="tiles" width="72" height="72" patternUnits="userSpaceOnUse">\n    <rect width="72" height="72" fill="#0b1926"/>\n    <path d="M72 0H0V72" fill="none" stroke="#153048" stroke-width="2" opacity=".55"/>\n  </pattern>\n  <pattern id="roadDashV" width="16" height="104" patternUnits="userSpaceOnUse">\n    <rect x="6" y="18" width="4" height="42" rx="2" fill="#66869b" opacity=".8"/>\n  </pattern>\n  <pattern id="roadDashH" width="104" height="16" patternUnits="userSpaceOnUse">\n    <rect x="18" y="6" width="42" height="4" rx="2" fill="#66869b" opacity=".8"/>\n  </pattern>\n  <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>\n  <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>\n</defs>\n<rect width="2200" height="2200" fill="url(#bg)"/>\n<rect width="2200" height="2200" fill="url(#tiles)" opacity=".92"/>\n\n<!-- road network -->\n<g fill="#0b1722" stroke="#2c4658" stroke-width="8">\n  <rect x="285" y="0" width="190" height="2200"/>\n  <rect x="1005" y="0" width="190" height="2200"/>\n  <rect x="1725" y="0" width="190" height="2200"/>\n  <rect x="0" y="285" width="2200" height="190"/>\n  <rect x="0" y="1005" width="2200" height="190"/>\n  <rect x="0" y="1725" width="2200" height="190"/>\n</g>\n<g opacity=".75">\n  <rect x="375" y="0" width="16" height="2200" fill="url(#roadDashV)"/>\n  <rect x="1095" y="0" width="16" height="2200" fill="url(#roadDashV)"/>\n  <rect x="1815" y="0" width="16" height="2200" fill="url(#roadDashV)"/>\n  <rect x="0" y="375" width="2200" height="16" fill="url(#roadDashH)"/>\n  <rect x="0" y="1095" width="2200" height="16" fill="url(#roadDashH)"/>\n  <rect x="0" y="1815" width="2200" height="16" fill="url(#roadDashH)"/>\n</g>\n\n<!-- cyan curb lighting -->\n<g stroke="#22d9ff" stroke-width="8" opacity=".72" filter="url(#glow)" fill="none">\n  <path d="M285 0V2200M475 0V2200M1005 0V2200M1195 0V2200M1725 0V2200M1915 0V2200"/>\n  <path d="M0 285H2200M0 475H2200M0 1005H2200M0 1195H2200M0 1725H2200M0 1915H2200"/>\n</g>\n\n<!-- intersections -->\n<g fill="#0a1621" stroke="#355468" stroke-width="7">\n  <rect x="270" y="270" width="220" height="220" rx="28"/>\n  <rect x="990" y="270" width="220" height="220" rx="28"/>\n  <rect x="1710" y="270" width="220" height="220" rx="28"/>\n  <rect x="270" y="990" width="220" height="220" rx="28"/>\n  <rect x="960" y="960" width="280" height="280" rx="52"/>\n  <rect x="1710" y="990" width="220" height="220" rx="28"/>\n  <rect x="270" y="1710" width="220" height="220" rx="28"/>\n  <rect x="990" y="1710" width="220" height="220" rx="28"/>\n  <rect x="1710" y="1710" width="220" height="220" rx="28"/>\n</g>\n\n<!-- central hub -->\n<g transform="translate(1100 1100)">\n  <circle r="132" fill="#0c1c2a" stroke="#31556b" stroke-width="12"/>\n  <circle r="86" fill="none" stroke="#27d9ff" stroke-width="7" opacity=".75"/>\n  <circle r="52" fill="#102433" stroke="#4a7186" stroke-width="5"/>\n  <g fill="#35e4ff" filter="url(#glow)">\n    <circle cx="0" cy="-88" r="7"/><circle cx="88" cy="0" r="7"/><circle cx="0" cy="88" r="7"/><circle cx="-88" cy="0" r="7"/>\n  </g>\n</g>\n\n<!-- building blocks -->\n<g stroke="#2b4659" stroke-width="7">\n  <g transform="translate(55 55)">\n    <rect width="190" height="170" rx="18" fill="#0f2232"/><rect x="22" y="24" width="145" height="92" rx="12" fill="#132c40"/>\n    <g fill="#09131d" stroke="#42647a" stroke-width="4"><circle cx="62" cy="70" r="20"/><circle cx="125" cy="70" r="20"/></g>\n    <rect x="20" y="138" width="150" height="8" rx="4" fill="#29ddff"/>\n  </g>\n  <g transform="translate(525 55)">\n    <rect width="390" height="170" rx="20" fill="#0d2030"/><rect x="36" y="30" width="150" height="105" rx="10" fill="#142d40"/>\n    <rect x="220" y="28" width="132" height="92" rx="12" fill="#102839"/>\n    <path d="M28 145H360" stroke="#24d9ff" stroke-width="8"/>\n  </g>\n  <g transform="translate(1245 55)">\n    <rect width="390" height="170" rx="20" fill="#0d2030"/><rect x="30" y="28" width="160" height="100" rx="12" fill="#142d40"/>\n    <rect x="222" y="25" width="125" height="112" rx="10" fill="#102839"/>\n    <g fill="#132a3b"><circle cx="270" cy="77" r="30"/><circle cx="325" cy="77" r="30"/></g>\n    <path d="M30 145H360" stroke="#24d9ff" stroke-width="8"/>\n  </g>\n  <g transform="translate(1955 55)">\n    <rect width="190" height="170" rx="18" fill="#0f2232"/><rect x="25" y="26" width="140" height="88" rx="12" fill="#132c40"/>\n    <g fill="#09131d" stroke="#42647a" stroke-width="4"><circle cx="64" cy="70" r="18"/><circle cx="124" cy="70" r="18"/></g>\n    <rect x="20" y="138" width="150" height="8" rx="4" fill="#29ddff"/>\n  </g>\n</g>\n\n<!-- reusable plazas / structures -->\n<g stroke="#29475b" stroke-width="7">\n  <rect x="40" y="525" width="205" height="390" rx="24" fill="#0c1d2b"/>\n  <rect x="525" y="525" width="390" height="390" rx="26" fill="#0b1b29"/>\n  <rect x="1245" y="525" width="390" height="390" rx="26" fill="#0b1b29"/>\n  <rect x="1955" y="525" width="205" height="390" rx="24" fill="#0c1d2b"/>\n\n  <rect x="40" y="1245" width="205" height="390" rx="24" fill="#0c1d2b"/>\n  <rect x="525" y="1245" width="390" height="390" rx="26" fill="#0b1b29"/>\n  <rect x="1245" y="1245" width="390" height="390" rx="26" fill="#0b1b29"/>\n  <rect x="1955" y="1245" width="205" height="390" rx="24" fill="#0c1d2b"/>\n\n  <rect x="40" y="1955" width="205" height="205" rx="24" fill="#0c1d2b"/>\n  <rect x="525" y="1955" width="390" height="205" rx="26" fill="#0b1b29"/>\n  <rect x="1245" y="1955" width="390" height="205" rx="26" fill="#0b1b29"/>\n  <rect x="1955" y="1955" width="205" height="205" rx="24" fill="#0c1d2b"/>\n</g>\n\n<!-- landing pads -->\n<g fill="none" stroke="#2ecdf2" opacity=".58">\n  <g stroke-width="9">\n    <circle cx="145" cy="710" r="63"/><circle cx="720" cy="705" r="82"/><circle cx="1440" cy="720" r="70"/><circle cx="2055" cy="710" r="62"/>\n    <circle cx="145" cy="1430" r="62"/><circle cx="720" cy="1430" r="78"/><circle cx="1440" cy="1430" r="68"/><circle cx="2055" cy="1430" r="62"/>\n    <circle cx="710" cy="2055" r="70"/><circle cx="1440" cy="2055" r="70"/>\n  </g>\n  <g stroke-width="4">\n    <path d="M145 625V660M145 760V795M60 710H95M195 710H230"/>\n    <path d="M720 600V640M720 770V810M610 705H650M790 705H830"/>\n    <path d="M1440 630V665M1440 775V810M1345 720H1380M1500 720H1535"/>\n  </g>\n</g>\n\n<!-- machinery / crates -->\n<g fill="#10283a" stroke="#3a5a6e" stroke-width="5">\n  <g transform="translate(570 570)">\n    <rect width="145" height="98" rx="12"/><rect x="22" y="20" width="100" height="18" fill="#1d4257"/><circle cx="42" cy="69" r="12"/><circle cx="103" cy="69" r="12"/>\n  </g>\n  <g transform="translate(760 775)"><rect width="105" height="96" rx="10"/><path d="M12 12L93 84M93 12L12 84" stroke="#55758a"/></g>\n  <g transform="translate(1300 560)"><rect width="170" height="120" rx="14"/><rect x="28" y="26" width="116" height="22" fill="#1d4257"/><circle cx="55" cy="86" r="15"/><circle cx="116" cy="86" r="15"/></g>\n  <g transform="translate(1510 775)"><rect width="90" height="90" rx="8"/><path d="M12 12L78 78M78 12L12 78" stroke="#55758a"/></g>\n  <g transform="translate(580 1300)"><rect width="170" height="120" rx="14"/><rect x="28" y="25" width="116" height="22" fill="#1d4257"/><circle cx="55" cy="86" r="15"/><circle cx="116" cy="86" r="15"/></g>\n  <g transform="translate(1325 1300)"><rect width="155" height="110" rx="14"/><rect x="22" y="22" width="110" height="20" fill="#1d4257"/><circle cx="50" cy="79" r="13"/><circle cx="108" cy="79" r="13"/></g>\n  <g transform="translate(1510 1510)"><rect width="90" height="90" rx="8"/><path d="M12 12L78 78M78 12L12 78" stroke="#55758a"/></g>\n</g>\n\n<!-- hazard details -->\n<g stroke="#9c7427" stroke-width="10" opacity=".7">\n  <path d="M540 880H690M750 880H900M1280 880H1430M1490 880H1620"/>\n  <path d="M540 1600H690M750 1600H900M1280 1600H1430M1490 1600H1620"/>\n</g>\n\n<!-- small cyan light clusters -->\n<g fill="#35dfff" opacity=".72">\n  <circle cx="585" cy="735" r="6"/><circle cx="610" cy="735" r="6"/><circle cx="635" cy="735" r="6"/>\n  <circle cx="1550" cy="690" r="6"/><circle cx="1575" cy="690" r="6"/><circle cx="1600" cy="690" r="6"/>\n  <circle cx="650" cy="1540" r="6"/><circle cx="675" cy="1540" r="6"/><circle cx="700" cy="1540" r="6"/>\n  <circle cx="1330" cy="1535" r="6"/><circle cx="1355" cy="1535" r="6"/><circle cx="1380" cy="1535" r="6"/>\n</g>\n\n<!-- subtle vignette -->\n<rect width="2200" height="2200" fill="none" stroke="#02070d" stroke-width="80" opacity=".65"/>\n</svg>');
+      const MAP_SVG_DATA = "data:image/svg+xml;charset=utf-8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="2200" viewBox="0 0 2200 2200">\n<defs>\n  <linearGradient id="base" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07131d"/><stop offset=".55" stop-color="#0b1723"/><stop offset="1" stop-color="#050d16"/></linearGradient>\n  <linearGradient id="road" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#26333f"/><stop offset=".5" stop-color="#303d49"/><stop offset="1" stop-color="#202d39"/></linearGradient>\n  <linearGradient id="plaza" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#394753"/><stop offset="1" stop-color="#26343f"/></linearGradient>\n  <linearGradient id="bldg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#172839"/><stop offset=".6" stop-color="#0d1b29"/><stop offset="1" stop-color="#09131e"/></linearGradient>\n  <radialGradient id="core"><stop stop-color="#e8ffff"/><stop offset=".18" stop-color="#56eaff"/><stop offset=".48" stop-color="#117cff"/><stop offset="1" stop-color="#05265b"/></radialGradient>\n  <pattern id="pave" width="64" height="64" patternUnits="userSpaceOnUse"><rect width="64" height="64" fill="#283642"/><path d="M64 0H0V64" fill="none" stroke="#42515e" stroke-width="2" opacity=".25"/></pattern>\n  <pattern id="dashV" width="20" height="120" patternUnits="userSpaceOnUse"><rect x="8" y="28" width="5" height="48" rx="2" fill="#b4c6d3" opacity=".58"/></pattern>\n  <pattern id="dashH" width="120" height="20" patternUnits="userSpaceOnUse"><rect x="28" y="8" width="48" height="5" rx="2" fill="#b4c6d3" opacity=".58"/></pattern>\n  <filter id="cyanGlow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>\n  <filter id="magGlow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>\n</defs>\n<rect width="2200" height="2200" fill="url(#base)"/>\n<rect x="0" y="720" width="2200" height="760" fill="url(#pave)"/>\n<rect x="720" y="0" width="760" height="2200" fill="url(#pave)"/>\n\n<!-- Extra-wide four-way roads -->\n<rect x="820" y="0" width="560" height="2200" fill="url(#road)"/>\n<rect x="0" y="820" width="2200" height="560" fill="url(#road)"/>\n<rect x="1090" y="0" width="20" height="2200" fill="url(#dashV)"/>\n<rect x="0" y="1090" width="2200" height="20" fill="url(#dashH)"/>\n\n<!-- Corner futuristic building districts -->\n<g fill="url(#bldg)" stroke="#35546a" stroke-width="10">\n  <path d="M0 0H570V400L520 520H0Z"/>\n  <path d="M1630 0H2200V520H1680L1630 400Z"/>\n  <path d="M0 1680H520L570 1800V2200H0Z"/>\n  <path d="M1680 1680H2200V2200H1630V1800Z"/>\n</g>\n<g fill="none" stroke="#19dfff" stroke-width="12" opacity=".82" filter="url(#cyanGlow)">\n  <path d="M25 545H430L545 430V40"/>\n  <path d="M1655 40V430L1770 545H2170"/>\n  <path d="M25 1655H430L545 1770V2170"/>\n  <path d="M1655 2170V1770L1770 1655H2170"/>\n</g>\n<g fill="none" stroke="#ff42c8" stroke-width="10" opacity=".65" filter="url(#magGlow)">\n  <path d="M80 110H430"/><path d="M1770 110H2120"/>\n  <path d="M80 2090H430"/><path d="M1770 2090H2120"/>\n</g>\n\n<!-- Side water / utility complexes -->\n<g fill="#073049" stroke="#1686b3" stroke-width="9">\n  <path d="M0 680H260V940H0Z"/><path d="M0 1260H260V1520H0Z"/>\n  <path d="M1940 680H2200V940H1940Z"/><path d="M1940 1260H2200V1520H1940Z"/>\n</g>\n<g stroke="#45dfff" stroke-width="6" opacity=".65" fill="none">\n  <path d="M20 725Q120 690 245 740T245 890Q120 930 20 885"/>\n  <path d="M20 1315Q120 1280 245 1330T245 1475Q120 1510 20 1465"/>\n  <path d="M1960 725Q2060 690 2180 740T2180 890Q2060 930 1960 885"/>\n  <path d="M1960 1315Q2060 1280 2180 1330T2180 1475Q2060 1510 1960 1465"/>\n</g>\n\n<!-- Neon transit bridges -->\n<g fill="#102738" stroke="#32dfff" stroke-width="8">\n  <rect x="610" y="255" width="210" height="58" rx="18"/><rect x="1380" y="255" width="210" height="58" rx="18"/>\n  <rect x="610" y="1887" width="210" height="58" rx="18"/><rect x="1380" y="1887" width="210" height="58" rx="18"/>\n</g>\n\n<!-- Central open battle plaza -->\n<circle cx="1100" cy="1100" r="565" fill="url(#plaza)" stroke="#597080" stroke-width="10"/>\n<circle cx="1100" cy="1100" r="455" fill="none" stroke="#56dfff" stroke-width="8" opacity=".55"/>\n<circle cx="1100" cy="1100" r="350" fill="none" stroke="#a6c2d1" stroke-width="5" opacity=".32"/>\n<circle cx="1100" cy="1100" r="215" fill="#1d2c38" stroke="#34e4ff" stroke-width="8" opacity=".95"/>\n\n<!-- Central energy core (solid gameplay obstacle) -->\n<circle cx="1100" cy="1100" r="122" fill="#071c3d" stroke="#56eeff" stroke-width="14" filter="url(#cyanGlow)"/>\n<circle cx="1100" cy="1100" r="76" fill="url(#core)" stroke="#bafcff" stroke-width="7"/>\n<path d="M1100 960V1015M1100 1185V1240M960 1100H1015M1185 1100H1240" stroke="#58eaff" stroke-width="14" filter="url(#cyanGlow)"/>\n\n<!-- Large decorative planters: deliberately NON-collidable -->\n<g fill="#193d32" stroke="#50c999" stroke-width="5" opacity=".95">\n  <path d="M730 730H900L940 775L900 820H730L690 775Z"/>\n  <path d="M1300 730H1470L1510 775L1470 820H1300L1260 775Z"/>\n  <path d="M730 1380H900L940 1425L900 1470H730L690 1425Z"/>\n  <path d="M1300 1380H1470L1510 1425L1470 1470H1300L1260 1425Z"/>\n</g>\n\n<!-- Sci-fi towers and rooftop machinery on blocked corners -->\n<g fill="#12283a" stroke="#42677e" stroke-width="7">\n  <circle cx="245" cy="250" r="105"/><circle cx="1955" cy="250" r="105"/>\n  <circle cx="245" cy="1950" r="105"/><circle cx="1955" cy="1950" r="105"/>\n  <rect x="70" y="390" width="260" height="90" rx="20"/><rect x="1870" y="390" width="260" height="90" rx="20"/>\n  <rect x="70" y="1720" width="260" height="90" rx="20"/><rect x="1870" y="1720" width="260" height="90" rx="20"/>\n</g>\n<g fill="#28ddff" filter="url(#cyanGlow)">\n  <circle cx="245" cy="250" r="26"/><circle cx="1955" cy="250" r="26"/><circle cx="245" cy="1950" r="26"/><circle cx="1955" cy="1950" r="26"/>\n</g>\n<g fill="#ff3fc8" opacity=".8">\n  <rect x="85" y="425" width="100" height="12" rx="6"/><rect x="2015" y="425" width="100" height="12" rx="6"/>\n  <rect x="85" y="1755" width="100" height="12" rx="6"/><rect x="2015" y="1755" width="100" height="12" rx="6"/>\n</g>\n\n<!-- Road edge cyan strips -->\n<g stroke="#36e2ff" stroke-width="7" opacity=".72" filter="url(#cyanGlow)">\n  <path d="M815 0V650M815 1550V2200M1385 0V650M1385 1550V2200"/>\n  <path d="M0 815H650M1550 815H2200M0 1385H650M1550 1385H2200"/>\n</g>\n\n<!-- Tiny cars / lights are decorative only -->\n<g fill="#263f51" stroke="#66dfff" stroke-width="3">\n  <rect x="900" y="560" width="70" height="34" rx="10"/><rect x="1260" y="720" width="70" height="34" rx="10"/>\n  <rect x="720" y="1190" width="70" height="34" rx="10"/><rect x="1420" y="1230" width="70" height="34" rx="10"/>\n  <rect x="980" y="1570" width="70" height="34" rx="10"/><rect x="1220" y="1680" width="70" height="34" rx="10"/>\n</g>\n<g fill="#5bf0ff" opacity=".8"><circle cx="660" cy="660" r="7"/><circle cx="1540" cy="660" r="7"/><circle cx="660" cy="1540" r="7"/><circle cx="1540" cy="1540" r="7"/></g>\n\n<!-- World edge -->\n<rect x="5" y="5" width="2190" height="2190" fill="none" stroke="#143048" stroke-width="10"/>\n</svg>');
       const artUrls = Object.values(ART);
       const artLoadFailures = [];
       try {
@@ -125,12 +125,27 @@
       const deadRight = Math.min(W - 120, W * 0.7);
       const deadTop = Math.max(playTop + 70, H * 0.3);
       const deadBottom = Math.min(H - 90, H * 0.72);
+      const PLAYER_COLLISION_RADIUS = 19;
+      const PLAYER_START_X = WORLD_WIDTH * 0.5;
+      const PLAYER_START_Y = WORLD_HEIGHT * 0.5 + 245;
+      const collisionDebug = new URLSearchParams(win.location.search).get("collisions") === "1";
+      const COLLISION_ZONES = [
+        { kind: "rect", id: "NW_BUILDINGS", x: 0, y: 0, w: 570, h: 620 },
+        { kind: "rect", id: "NE_BUILDINGS", x: 1630, y: 0, w: 570, h: 620 },
+        { kind: "rect", id: "SW_BUILDINGS", x: 0, y: 1580, w: 570, h: 620 },
+        { kind: "rect", id: "SE_BUILDINGS", x: 1630, y: 1580, w: 570, h: 620 },
+        { kind: "rect", id: "WEST_WATER_N", x: 0, y: 680, w: 260, h: 260 },
+        { kind: "rect", id: "WEST_WATER_S", x: 0, y: 1260, w: 260, h: 260 },
+        { kind: "rect", id: "EAST_WATER_N", x: 1940, y: 680, w: 260, h: 260 },
+        { kind: "rect", id: "EAST_WATER_S", x: 1940, y: 1260, w: 260, h: 260 },
+        { kind: "circle", id: "ENERGY_CORE", x: 1100, y: 1100, r: 126 }
+      ];
       const world = new Laya.Sprite();
       stage.addChild(world);
       drawWorld();
       const player = new Laya.Sprite();
       const playerVisual = drawPlayer(player);
-      player.pos(WORLD_WIDTH * 0.5, WORLD_HEIGHT * 0.5);
+      player.pos(PLAYER_START_X, PLAYER_START_Y);
       world.addChild(player);
       let cameraX = Math.max(0, Math.min(WORLD_WIDTH - W, player.x - W * 0.5));
       let cameraY = Math.max(0, Math.min(WORLD_HEIGHT - H, player.y - H * 0.58));
@@ -211,10 +226,10 @@
         stageHeight: H,
         engine: "LayaAir",
         engineVersion: "3.4.0",
-        version: "0.7.0-large-world-camera",
+        version: "0.8.0-map-collision-nav",
         artVersion: "v1-runtime-baked-v2",
         animationVersion: "frame-clips-v3",
-        layoutVersion: "large-world-camera-v1",
+        layoutVersion: "large-world-camera-collision-v2",
         mobilePortraitLayout,
         viewportWidth: viewportW,
         viewportHeight: viewportH,
@@ -252,7 +267,12 @@
         cameraX,
         cameraY,
         cameraDeadZone: { left: deadLeft, right: deadRight, top: deadTop, bottom: deadBottom },
-        largeWorldCamera: true
+        largeWorldCamera: true,
+        collisionVersion: "city-plaza-v1",
+        collisionZones: COLLISION_ZONES.length,
+        playerCollisionRadius: PLAYER_COLLISION_RADIUS,
+        enemyObstacleAvoidance: true,
+        bulletWorldCollision: true
       };
       win.__XIANG_AI_LAYA__ = probe;
       if (!fast) showStartScreen();
@@ -351,6 +371,19 @@
         edge.graphics.drawRect(2, 2, WORLD_WIDTH - 4, WORLD_HEIGHT - 4, null, "#32cbea66", 6);
         edge.mouseEnabled = false;
         world.addChild(edge);
+        if (collisionDebug) {
+          const debug = new Laya.Sprite();
+          debug.alpha = 0.28;
+          for (const z of COLLISION_ZONES) {
+            if (z.kind === "rect") {
+              debug.graphics.drawRect(z.x, z.y, z.w, z.h, "#ff375f44", "#ff6b81", 3);
+            } else {
+              debug.graphics.drawCircle(z.x, z.y, z.r, "#ff375f44", "#ff6b81", 3);
+            }
+          }
+          debug.mouseEnabled = false;
+          world.addChild(debug);
+        }
       }
       function drawPlayer(s) {
         const shadow = new Laya.Sprite();
@@ -841,33 +874,61 @@
       function spawnEnemy(forceShield = false) {
         if (enemies.length >= 180) return;
         const kind = chooseEnemyKind(forceShield);
-        const pad = 90;
-        const candidates = [];
-        if (cameraX - pad > WORLD_MARGIN) {
-          candidates.push({ side: 0, x: cameraX - pad, y: clamp(cameraY + 80 + Math.random() * Math.max(40, H - 160), WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN) });
-        }
-        if (cameraX + W + pad < WORLD_WIDTH - WORLD_MARGIN) {
-          candidates.push({ side: 1, x: cameraX + W + pad, y: clamp(cameraY + 80 + Math.random() * Math.max(40, H - 160), WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN) });
-        }
-        if (cameraY - pad > WORLD_MARGIN) {
-          candidates.push({ side: 2, x: clamp(cameraX + 60 + Math.random() * Math.max(40, W - 120), WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN), y: cameraY - pad });
-        }
-        if (cameraY + H + pad < WORLD_HEIGHT - WORLD_MARGIN) {
-          candidates.push({ side: 3, x: clamp(cameraX + 60 + Math.random() * Math.max(40, W - 120), WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN), y: cameraY + H + pad });
-        }
-        let x;
-        let y;
-        if (candidates.length) {
+        const pad = 100;
+        const spawnRadius = kind === "shield" ? 25 : 21;
+        let chosenX = NaN;
+        let chosenY = NaN;
+        for (let attempt = 0; attempt < 18; attempt++) {
+          const candidates = [];
+          if (cameraX - pad > WORLD_MARGIN) {
+            candidates.push({
+              x: cameraX - pad,
+              y: clamp(cameraY + 70 + Math.random() * Math.max(40, H - 140), WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN)
+            });
+          }
+          if (cameraX + W + pad < WORLD_WIDTH - WORLD_MARGIN) {
+            candidates.push({
+              x: cameraX + W + pad,
+              y: clamp(cameraY + 70 + Math.random() * Math.max(40, H - 140), WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN)
+            });
+          }
+          if (cameraY - pad > WORLD_MARGIN) {
+            candidates.push({
+              x: clamp(cameraX + 60 + Math.random() * Math.max(40, W - 120), WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN),
+              y: cameraY - pad
+            });
+          }
+          if (cameraY + H + pad < WORLD_HEIGHT - WORLD_MARGIN) {
+            candidates.push({
+              x: clamp(cameraX + 60 + Math.random() * Math.max(40, W - 120), WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN),
+              y: cameraY + H + pad
+            });
+          }
+          if (!candidates.length) break;
           const p = candidates[Math.floor(Math.random() * candidates.length)];
-          x = p.x;
-          y = p.y;
-        } else {
-          const angle = Math.random() * Math.PI * 2;
-          const radius = Math.max(W, H) * 0.58;
-          x = clamp(player.x + Math.cos(angle) * radius, WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN);
-          y = clamp(player.y + Math.sin(angle) * radius, WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN);
+          const pdx = p.x - player.x;
+          const pdy = p.y - player.y;
+          if (pdx * pdx + pdy * pdy < 240 * 240) continue;
+          if (!canStandAt(p.x, p.y, spawnRadius)) continue;
+          chosenX = p.x;
+          chosenY = p.y;
+          break;
         }
-        enemies.push(makeEnemy(kind, x, y));
+        if (!Number.isFinite(chosenX)) {
+          for (let i = 0; i < 20; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.max(W, H) * (0.55 + Math.random() * 0.2);
+            const x = clamp(player.x + Math.cos(angle) * radius, WORLD_MARGIN + 30, WORLD_WIDTH - WORLD_MARGIN - 30);
+            const y = clamp(player.y + Math.sin(angle) * radius, WORLD_MARGIN + 30, WORLD_HEIGHT - WORLD_MARGIN - 30);
+            if (canStandAt(x, y, spawnRadius)) {
+              chosenX = x;
+              chosenY = y;
+              break;
+            }
+          }
+        }
+        if (!Number.isFinite(chosenX)) return;
+        enemies.push(makeEnemy(kind, chosenX, chosenY));
         if (kind === "shield") shieldSpawned++;
       }
       function spawnPickup(x, y, value) {
@@ -1208,7 +1269,13 @@
         bossShadow.mouseEnabled = false;
         s.addChild(bossShadow);
         attachArt(s, ART.boss, 240, 120, 300, 150, 0, -8);
-        s.pos(clamp(player.x, 180, WORLD_WIDTH - 180), clamp(player.y - Math.min(300, H * 0.34), 160, WORLD_HEIGHT - 160));
+        let bossX = clamp(player.x, 180, WORLD_WIDTH - 180);
+        let bossY = clamp(player.y - Math.min(300, H * 0.34), 160, WORLD_HEIGHT - 160);
+        if (!canStandAt(bossX, bossY, 72)) {
+          bossX = 1100;
+          bossY = 700;
+        }
+        s.pos(bossX, bossY);
         world.addChild(s);
         bossSprite = s;
         ui.bossText.visible = true;
@@ -1235,8 +1302,14 @@
           }
         }
         const speed = bossPhase === 3 ? 1.9 : bossPhase === 2 ? 1.25 : 0.8;
-        bossSprite.x = clamp(player.x + Math.sin(elapsed * speed) * Math.min(160, W * 0.28), 150, WORLD_WIDTH - 150);
-        bossSprite.y = clamp(player.y - Math.min(280, H * 0.32) + Math.cos(elapsed * 0.9) * 34, 130, WORLD_HEIGHT - 130);
+        const desiredBossX = clamp(player.x + Math.sin(elapsed * speed) * Math.min(160, W * 0.28), 150, WORLD_WIDTH - 150);
+        const desiredBossY = clamp(player.y - Math.min(280, H * 0.32) + Math.cos(elapsed * 0.9) * 34, 130, WORLD_HEIGHT - 130);
+        moveWithSlide(
+          bossSprite,
+          (desiredBossX - bossSprite.x) * Math.min(1, dt * 6),
+          (desiredBossY - bossSprite.y) * Math.min(1, dt * 6),
+          72
+        );
         bossSprite.rotation = Math.sin(elapsed * (bossPhase === 3 ? 1.4 : 0.8)) * (bossPhase === 3 ? 3.5 : 1.8);
         bossSkillCooldown -= dt;
         if (bossSkillCooldown <= 0) {
@@ -1566,7 +1639,7 @@
         gameOver = false;
         paused = false;
         gameStarted = true;
-        player.pos(WORLD_WIDTH * 0.5, WORLD_HEIGHT * 0.5);
+        player.pos(PLAYER_START_X, PLAYER_START_Y);
         cameraX = Math.max(0, Math.min(WORLD_WIDTH - W, player.x - W * 0.5));
         cameraY = Math.max(0, Math.min(WORLD_HEIGHT - H, player.y - H * 0.58));
         cameraTargetX = cameraX;
@@ -1605,6 +1678,44 @@
       stage.on(Laya.Event.MOUSE_OUT, null, () => dragging = false);
       function clamp(v, min, max) {
         return Math.max(min, Math.min(max, v));
+      }
+      function circleHitsZone(x, y, radius, zone) {
+        if (zone.kind === "circle") {
+          const dx2 = x - zone.x;
+          const dy2 = y - zone.y;
+          const rr = radius + zone.r;
+          return dx2 * dx2 + dy2 * dy2 < rr * rr;
+        }
+        const cx = clamp(x, zone.x, zone.x + zone.w);
+        const cy = clamp(y, zone.y, zone.y + zone.h);
+        const dx = x - cx;
+        const dy = y - cy;
+        return dx * dx + dy * dy < radius * radius;
+      }
+      function collidesWorld(x, y, radius) {
+        if (x - radius < WORLD_MARGIN || y - radius < WORLD_MARGIN || x + radius > WORLD_WIDTH - WORLD_MARGIN || y + radius > WORLD_HEIGHT - WORLD_MARGIN) return true;
+        for (const zone of COLLISION_ZONES) {
+          if (circleHitsZone(x, y, radius, zone)) return true;
+        }
+        return false;
+      }
+      function canStandAt(x, y, radius) {
+        return !collidesWorld(x, y, radius);
+      }
+      function moveWithSlide(sprite, dx, dy, radius) {
+        let movedX = false;
+        let movedY = false;
+        const nx = sprite.x + dx;
+        if (canStandAt(nx, sprite.y, radius)) {
+          sprite.x = nx;
+          movedX = true;
+        }
+        const ny = sprite.y + dy;
+        if (canStandAt(sprite.x, ny, radius)) {
+          sprite.y = ny;
+          movedY = true;
+        }
+        return { movedX, movedY };
       }
       function updateCamera(dt, snap = false) {
         const screenX = player.x - cameraX;
@@ -1656,8 +1767,12 @@
         if (ml > 0) {
           const nx = mx / ml;
           const ny = my / ml;
-          player.x += nx * moveSpeed * dt;
-          player.y += ny * moveSpeed * dt;
+          moveWithSlide(
+            player,
+            nx * moveSpeed * dt,
+            ny * moveSpeed * dt,
+            PLAYER_COLLISION_RADIUS
+          );
           playerWalkPhase += dt * 10.5;
           const lift = Math.abs(Math.sin(playerWalkPhase * Math.PI / 4));
           pose.scaleX = nx < -0.08 ? -1 : nx > 0.08 ? 1 : pose.scaleX || 1;
@@ -1696,8 +1811,8 @@
         } else {
           pose.x *= Math.max(0, 1 - dt * 16);
         }
-        player.x = clamp(player.x, WORLD_MARGIN, WORLD_WIDTH - WORLD_MARGIN);
-        player.y = clamp(player.y, WORLD_MARGIN, WORLD_HEIGHT - WORLD_MARGIN);
+        player.x = clamp(player.x, WORLD_MARGIN + PLAYER_COLLISION_RADIUS, WORLD_WIDTH - WORLD_MARGIN - PLAYER_COLLISION_RADIUS);
+        player.y = clamp(player.y, WORLD_MARGIN + PLAYER_COLLISION_RADIUS, WORLD_HEIGHT - WORLD_MARGIN - PLAYER_COLLISION_RADIUS);
         updateCamera(dt);
       }
       function updateSpawner(dt) {
@@ -1753,6 +1868,10 @@
             if (e.hp <= 0) killEnemy(j);
             if (b.pierce <= 0) consumed = true;
           }
+          if (!consumed && collidesWorld(b.sprite.x, b.sprite.y, 4)) {
+            spawnHitFx(b.sprite.x, b.sprite.y);
+            consumed = true;
+          }
           if (consumed || b.life <= 0 || b.sprite.x < -80 || b.sprite.x > WORLD_WIDTH + 80 || b.sprite.y < -80 || b.sprite.y > WORLD_HEIGHT + 80) {
             b.sprite.removeSelf();
             b.sprite.destroy();
@@ -1777,8 +1896,19 @@
           const len = Math.max(1e-3, Math.hypot(dx, dy));
           const nx = dx / len;
           const ny = dy / len;
-          e.sprite.x += nx * e.speed * dt;
-          e.sprite.y += ny * e.speed * dt;
+          const enemyRadius = Math.max(12, e.radius * 0.62);
+          const stepX = nx * e.speed * dt;
+          const stepY = ny * e.speed * dt;
+          const moveResult = moveWithSlide(e.sprite, stepX, stepY, enemyRadius);
+          if (!moveResult.movedX && !moveResult.movedY) {
+            const side = (Math.floor(e.animTime * 2) + e.kind.length) % 2 === 0 ? 1 : -1;
+            const tx = -ny * side;
+            const ty = nx * side;
+            let tangent = moveWithSlide(e.sprite, tx * e.speed * dt * 0.92, ty * e.speed * dt * 0.92, enemyRadius);
+            if (!tangent.movedX && !tangent.movedY) {
+              tangent = moveWithSlide(e.sprite, -tx * e.speed * dt * 0.92, -ty * e.speed * dt * 0.92, enemyRadius);
+            }
+          }
           const art = e.art;
           const pose = e.pose;
           if (e.kind !== "shield") {
@@ -1893,6 +2023,11 @@
         probe.cameraY = cameraY;
         probe.worldX = world.x;
         probe.worldY = world.y;
+        probe.collisionZones = COLLISION_ZONES.length;
+        probe.playerCollisionRadius = PLAYER_COLLISION_RADIUS;
+        probe.playerOnValidGround = canStandAt(player.x, player.y, PLAYER_COLLISION_RADIUS);
+        probe.coreBlocksMovement = collidesWorld(1100, 1100, PLAYER_COLLISION_RADIUS);
+        probe.northRoadOpen = !collidesWorld(1100, 500, PLAYER_COLLISION_RADIUS);
         probe.hp = hp;
         probe.level = level;
         probe.xpCollected = xpCollected;
