@@ -24,7 +24,7 @@
   // src/Entry.ts
   function main() {
     return __async(this, null, function* () {
-      var _a;
+      var _a, _b, _c;
       const stage = Laya.stage;
       const win = Laya.Browser.window;
       const fast = new URLSearchParams(win.location.search).get("fast") === "1";
@@ -226,7 +226,7 @@
         stageHeight: H,
         engine: "LayaAir",
         engineVersion: "3.4.0",
-        version: "0.8.4-real-map-asset",
+        version: "0.8.5-map-drawtexture",
         artVersion: "v1-runtime-baked-v2",
         animationVersion: "frame-clips-v3",
         layoutVersion: "large-world-camera-collision-v2",
@@ -237,6 +237,9 @@
         designHeight: stage.designHeight,
         artLoadFailures,
         mapLoadReady: !!Laya.loader.getRes(ART.map),
+        mapRenderMode: "graphics-drawTexture",
+        mapTextureWidth: Number(((_b = Laya.loader.getRes(ART.map)) == null ? void 0 : _b.width) || 0),
+        mapTextureHeight: Number(((_c = Laya.loader.getRes(ART.map)) == null ? void 0 : _c.height) || 0),
         codeFirst: true,
         fast,
         playerX: player.x,
@@ -367,7 +370,13 @@
         bg.graphics.drawRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT, "#07131f");
         world.addChild(bg);
         const map = new Laya.Sprite();
-        map.loadImage(ART.map, 0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+        const mapTexture = Laya.loader.getRes(ART.map);
+        if (mapTexture) {
+          map.graphics.drawTexture(mapTexture, 0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+        } else {
+          console.error("Selected map texture missing at draw time:", ART.map);
+        }
+        map.size(WORLD_WIDTH, WORLD_HEIGHT);
         map.mouseEnabled = false;
         world.addChild(map);
         const edge = new Laya.Sprite();
