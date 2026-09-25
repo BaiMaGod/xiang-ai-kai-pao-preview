@@ -310,7 +310,7 @@
         stageHeight: H,
         engine: "LayaAir",
         engineVersion: "3.4.0",
-        version: "0.8.6-hd-map-planter-collision",
+        version: "0.8.7-hd-map-collision-los",
         artVersion: "v1-runtime-baked-v2",
         animationVersion: "frame-clips-v3",
         layoutVersion: "large-world-camera-collision-v2",
@@ -1367,11 +1367,15 @@
         bossShadow.mouseEnabled = false;
         s.addChild(bossShadow);
         attachArt(s, ART.boss, 240, 120, 300, 150, 0, -8);
-        let bossX = clamp(player.x, 180, WORLD_WIDTH - 180);
-        let bossY = clamp(player.y - Math.min(300, H * 0.34), 160, WORLD_HEIGHT - 160);
+        const bossSide = player.x < WORLD_WIDTH * 0.5 ? 1 : -1;
+        let bossX = clamp(player.x + bossSide * 320, 180, WORLD_WIDTH - 180);
+        let bossY = clamp(player.y, 160, WORLD_HEIGHT - 160);
         if (!canStandAt(bossX, bossY, 72)) {
-          bossX = 1100;
-          bossY = 700;
+          bossX = clamp(player.x - bossSide * 320, 180, WORLD_WIDTH - 180);
+        }
+        if (!canStandAt(bossX, bossY, 72)) {
+          bossX = clamp(player.x + bossSide * 250, 180, WORLD_WIDTH - 180);
+          bossY = clamp(player.y + 180, 160, WORLD_HEIGHT - 160);
         }
         s.pos(bossX, bossY);
         world.addChild(s);
@@ -1400,8 +1404,18 @@
           }
         }
         const speed = bossPhase === 3 ? 1.9 : bossPhase === 2 ? 1.25 : 0.8;
-        const desiredBossX = clamp(player.x + Math.sin(elapsed * speed) * Math.min(160, W * 0.28), 150, WORLD_WIDTH - 150);
-        const desiredBossY = clamp(player.y - Math.min(280, H * 0.32) + Math.cos(elapsed * 0.9) * 34, 130, WORLD_HEIGHT - 130);
+        const lateralSide = player.x < WORLD_WIDTH * 0.5 ? 1 : -1;
+        const lateralDistance = bossPhase === 3 ? 215 : bossPhase === 2 ? 250 : 285;
+        const desiredBossX = clamp(
+          player.x + lateralSide * lateralDistance + Math.sin(elapsed * speed) * 75,
+          150,
+          WORLD_WIDTH - 150
+        );
+        const desiredBossY = clamp(
+          player.y + Math.cos(elapsed * 0.9) * (bossPhase === 3 ? 95 : 70),
+          130,
+          WORLD_HEIGHT - 130
+        );
         moveWithSlide(
           bossSprite,
           (desiredBossX - bossSprite.x) * Math.min(1, dt * 6),
