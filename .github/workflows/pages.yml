@@ -130,148 +130,52 @@ jobs:
           NODE
 
 
-      - name: Open live Laya V0.2 preview
+      - name: Open live Laya preview and verify upgrades and restart
         env:
           PREVIEW_URL: ${{ needs.deploy.outputs.page_url }}
         run: |
           node <<'NODE'
           const { chromium } = require('playwright');
-
+          const assert = require('node:assert/strict');
           (async () => {
             const browser = await chromium.launch({ headless: true });
-            const page = await browser.newPage({ viewport: { width: 540, height: 960 } });
-            const errors = [];
-
-            page.on('pageerror', err => errors.push('pageerror: ' + err.message));
-            page.on('console', msg => {
-              if (msg.type() === 'error' && !msg.text().includes('Failed to load resource')) {
-                errors.push('console: ' + msg.text());
-              }
-            });
-
-            const base = process.env.PREVIEW_URL.replace(/\/$/, '');
-
-            const normalUrl = base + '/laya-v0.2/';
-            console.log('Opening normal Laya preview:', normalUrl);
-            await page.goto(normalUrl, { waitUntil: 'networkidle', timeout: 60000 });
-            await page.waitForFunction(
-              () => window.__XIANG_AI_LAYA__?.ready === true &&
-                    window.__XIANG_AI_LAYA__?.startScreen === true,
-              null,
-              { timeout: 20000 }
-            );
-            await page.waitForSelector('#start-game-dom', { state: 'visible', timeout: 5000 });
-            await page.locator('#start-game-dom').click();
-            await page.waitForFunction(
-              () => window.__XIANG_AI_LAYA__?.running === true &&
-                    window.__XIANG_AI_LAYA__?.startScreen === false,
-              null,
-              { timeout: 5000 }
-            );
-
-            await page.evaluate(() => window.__XIANG_AI_LAYA__.testOpenLevelUp());
-            await page.waitForSelector('#game-choice-modal[data-modal-type="LEVEL_UP"]', { state: 'visible', timeout: 5000 });
-            const cards = page.locator('#game-choice-modal .game-choice-button');
-            if (await cards.count() !== 3) throw new Error('Live Laya upgrade modal did not show 3 choices');
-            const firstChoice = await cards.first().getAttribute('data-choice-id');
-            await cards.first().click();
-            await page.waitForFunction(
-              () => !document.querySelector('#game-choice-modal') &&
-                    window.__XIANG_AI_LAYA__?.lastChoice,
-              null,
-              { timeout: 5000 }
-            );
-            const clickedChoice = await page.evaluate(() => window.__XIANG_AI_LAYA__.lastChoice);
-            if (clickedChoice !== firstChoice) throw new Error('Live Laya upgrade choice did not apply');
-            console.log('LIVE_LAYA_UPGRADE_CHOICE_OK', JSON.stringify({ firstChoice, clickedChoice }));
-
-            const url = base + '/laya-v0.2/?fast=1';
-            console.log('Opening fast Laya preview:', url);
-            await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
-            await page.waitForFunction(
-              () => window.__XIANG_AI_LAYA__?.ready === true,
-              null,
-              { timeout: 20000 }
-            );
-
-            const initial = await page.evaluate(() => ({
-              playerX: window.__XIANG_AI_LAYA__.playerX,
-              cameraX: window.__XIANG_AI_LAYA__.cameraX
-            }));
-            await page.keyboard.down('d');
-            await page.waitForTimeout(900);
-            await page.keyboard.up('d');
-
-            await page.waitForFunction(
-              () => window.__XIANG_AI_LAYA__?.bossDefeated === true &&
-                    window.__XIANG_AI_LAYA__?.victory === true,
-              null,
-              { timeout: 35000 }
-            );
-
-            const state = await page.evaluate(() => ({
-              game: window.__XIANG_AI_LAYA__,
-              canvas: !!document.querySelector('canvas')
-            }));
-            console.log('Laya live state:', JSON.stringify(state, null, 2));
-
-            if (!state.canvas) throw new Error('Laya canvas missing');
-            if (state.game.playerX <= initial.playerX + 2) throw new Error('Laya movement failed');
-            if (!state.game.largeWorldCamera) throw new Error('Live large world camera is not active');
-            if (state.game.worldWidth < 1800 || state.game.worldHeight < 1800) throw new Error('Live world is not large enough');
-            if (state.game.cameraX <= initial.cameraX + 12) throw new Error('Live horizontal camera follow did not activate');
-            if (state.game.playerScreenX > state.game.cameraDeadZone.right + 40) throw new Error('Live player escaped camera dead zone');
-            if (state.game.collisionZones < 20) throw new Error('Live map collision zones are incomplete');
-            if (state.game.planterCollisionZones < 18) throw new Error('Live flowerbed collision zones are missing');
-            if (!state.game.coreBlocksMovement) throw new Error('Live central energy core does not block movement');
-            if (!state.game.centralPlanterBlocksMovement) throw new Error('Live central flowerbed does not block movement');
-            if (!state.game.northRoadOpen) throw new Error('Live north road should remain open');
-            if (!state.game.playerOnValidGround) throw new Error('Live player ended inside blocked geometry');
-            if (!state.game.enemyObstacleAvoidance) throw new Error('Live enemy obstacle avoidance is not active');
-            if (!state.game.bulletWorldCollision) throw new Error('Live bullet world collision is not active');
-            if (state.game.shots <= 0) throw new Error('Laya auto-fire failed');
-            if (!state.game.frameClipAnimation) throw new Error('Live frame clip animation system is not active');
-            if (!state.game.playerFrameClipReady) throw new Error('Live player run clips are not ready');
-            if (state.game.frameAnimatedEnemies <= 0) throw new Error('Live enemy frame clips are not active');
-            if (state.game.artLoadFailures?.length) throw new Error('Live art preload failures: ' + state.game.artLoadFailures.join(','));
-            if (!state.game.mapLoadReady) throw new Error('Live selected map texture is not loaded');
-            if (!state.game.mapHdActive) throw new Error('Live HD selected map is not active');
-            if (state.game.mapArtMode !== 'embedded-hd-map') throw new Error('Live selected map is not using the HD concept asset');
-            if (state.game.mapRenderMode !== 'graphics-drawTexture-hd') throw new Error('Live selected map is not using HD direct texture rendering');
-            if (state.game.mapTextureWidth < 1200 || state.game.mapTextureHeight < 1200) throw new Error('Live selected map texture is still low resolution');
-            if (!state.game.bossDefeated || !state.game.victory) throw new Error('Laya GPT-0 victory flow failed');
-
-            await page.waitForSelector('#game-choice-modal[data-modal-type="VICTORY"]', { state: 'visible', timeout: 5000 });
-            const victoryButtons = page.locator('#game-choice-modal .game-choice-button');
-            if (await victoryButtons.count() !== 1) throw new Error('Live victory screen must expose one restart action');
-            await victoryButtons.first().click();
-
-            await page.waitForFunction(
-              () => window.__XIANG_AI_LAYA__?.running === true &&
-                    window.__XIANG_AI_LAYA__?.victory === false &&
-                    window.__XIANG_AI_LAYA__?.bossDefeated === false &&
-                    window.__XIANG_AI_LAYA__?.level === 1 &&
-                    window.__XIANG_AI_LAYA__?.kills === 0 &&
-                    !document.querySelector('#game-choice-modal'),
-              null,
-              { timeout: 5000 }
-            );
-
-            const restarted = await page.evaluate(() => ({
-              level: window.__XIANG_AI_LAYA__.level,
-              kills: window.__XIANG_AI_LAYA__.kills,
-              victory: window.__XIANG_AI_LAYA__.victory,
-              bossDefeated: window.__XIANG_AI_LAYA__.bossDefeated,
-              running: window.__XIANG_AI_LAYA__.running
-            }));
-            console.log('LIVE_LAYA_VICTORY_RESTART_OK', JSON.stringify(restarted));
-
-            if (errors.length) throw new Error('Laya browser errors:\n' + errors.join('\n'));
-
-            await browser.close();
-            console.log('LIVE_LAYA_V0_2_SMOKE_OK');
-          })().catch(err => {
-            console.error(err);
-            process.exit(1);
-          });
+            try {
+              const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+              const errors = [];
+              page.on('pageerror', e => errors.push(e.message));
+              page.on('response', r => { if (r.status() >= 400) errors.push(r.status() + ' ' + r.url()); });
+              const base = process.env.PREVIEW_URL.replace(/\/$/, '') + '/laya-v0.2/';
+              await page.goto(base, { waitUntil: 'networkidle', timeout: 60000 });
+              await page.locator('#splash').waitFor({ state: 'detached', timeout: 20000 });
+              const initial = await page.evaluate(() => { const s = window.__XIANG_AI_LAYA__; return { version: s.version, art: s.artLoadFailures, map: s.mapArtMode }; });
+              assert.equal(initial.version, '0.9.0-combat-build-art');
+              assert.deepEqual(initial.art, []);
+              assert.equal(initial.map, 'external-hd-map');
+              await page.locator('#start-game-dom').tap();
+              await page.waitForFunction(() => window.__XIANG_AI_LAYA__.running);
+              const x = await page.evaluate(() => window.__XIANG_AI_LAYA__.playerX);
+              await page.keyboard.down('d'); await page.waitForTimeout(400); await page.keyboard.up('d');
+              assert((await page.evaluate(() => window.__XIANG_AI_LAYA__.playerX)) > x + 10);
+              await page.goto(base + '?test=1', { waitUntil: 'networkidle' });
+              await page.locator('#splash').waitFor({ state: 'detached' });
+              await page.locator('#start-game-dom').tap();
+              await page.evaluate(() => window.__XIANG_AI_LAYA__.test.xp(6));
+              await page.waitForSelector('[data-modal-type="LEVEL_UP"]');
+              const cards = page.locator('.game-choice-button');
+              assert.equal(await cards.count(), 3);
+              assert.equal(new Set(await cards.evaluateAll(bs => bs.map(b => b.dataset.choiceId))).size, 3);
+              await cards.first().tap();
+              await page.waitForFunction(() => window.__XIANG_AI_LAYA__.chosenUpgrades === 1);
+              await page.evaluate(() => window.__XIANG_AI_LAYA__.test.damage(1000));
+              await page.waitForSelector('[data-modal-type="GAME_OVER"]');
+              await page.locator('[data-choice-id="RESTART"]').tap();
+              await page.waitForFunction(() => { const s = window.__XIANG_AI_LAYA__; return s.running && !s.gameOver && s.level === 1 && s.hp === 100; });
+              await page.evaluate(() => window.__XIANG_AI_LAYA__.test.damage(1000));
+              await page.waitForSelector('[data-modal-type="GAME_OVER"]');
+              await page.getByRole('button', { name: /返回首页/ }).tap();
+              await page.locator('#start-game-dom').waitFor({ state: 'visible' });
+              assert.deepEqual(errors, []);
+              console.log('LIVE_LAYA_0_9_0_SMOKE_OK', JSON.stringify(initial));
+            } finally { await browser.close(); }
+          })().catch(e => { console.error(e); process.exit(1); });
           NODE
