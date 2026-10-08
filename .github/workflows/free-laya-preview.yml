@@ -282,7 +282,10 @@ jobs:
               mobile.on('response', r => {if (r.status() >= 400) errors.push(r.status() + ' ' + r.url());});
               await mobile.goto(base + '?test=1', {waitUntil:'networkidle', timeout:60000});
               await mobile.locator('#splash').waitFor({state:'detached',timeout:30000});
-              await mobile.waitForFunction(() => window.__XIANG_AI_LAYA__?.ready, {timeout:30000});
+              await mobile.waitForFunction(() => window.__XIANG_AI_LAYA__?.ready, null, {timeout:30000});
+              await mobile.waitForFunction(() => document.querySelector('link[data-ai-quality]')?.sheet?.cssRules?.length > 10, null, {timeout:15000});
+              const titleArt = await mobile.evaluate(() => getComputedStyle(document.querySelector('.ai-modal-panel'), '::before').backgroundImage);
+              assert(titleArt.includes('player_wang.png'), 'Live start menu must show actual player art');
               await mobile.screenshot({path:'qa-public/live-mobile-start.png',fullPage:true});
               assert.deepEqual(await mobile.evaluate(() => window.__XIANG_AI_LAYA__.artLoadFailures), []);
               await mobile.locator('#start-game-dom').tap();
