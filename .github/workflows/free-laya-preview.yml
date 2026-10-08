@@ -1,0 +1,328 @@
+name: Free LayaAir build, Chromium QA and Pages publish
+
+on:
+  # Running this public-repository workflow uses free standard GitHub-hosted runners.
+  # This push filter is only for bootstrapping/testing changes to this workflow.
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/free-laya-preview.yml
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Rebuild even when the private source SHA has not changed"
+        type: boolean
+        required: false
+        default: false
+  # Private-source commits cannot directly trigger a public workflow without
+  # a paid private runner or webhook service. Poll hourly (UTC).
+  schedule:
+    - cron: "23 * * * *"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: free-laya-preview-main
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Check free public runner and read-only source credential
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.credential.outputs.configured }
+    steps:
+      - name: Check source credential without printing it
+        id: credential
+        env:
+          SOURCE_READ_TOKEN: ${{ secrets.PREVIEW_SOURCE_READ_TOKEN }
+        shell: bash
+        run: |
+          if [ -n "$SOURCE_READ_TOKEN" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "Public runner available; private source credential configured." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Public runner works. Add PREVIEW_SOURCE_READ_TOKEN in this public repository's Actions secrets to enable private-source builds."
+            echo "## Setup required" >> "$GITHUB_STEP_SUMMARY"
+            echo "Add the **PREVIEW_SOURCE_READ_TOKEN** Actions secret: a fine-grained PAT with **Contents: read-only** access to BaiMaGod/xiang-ai-kai-pao only." >> "$GITHUB_STEP_SUMMARY"
+            echo "Then open Actions -> Free LayaAir build -> Run workflow." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  build:
+    name: Clone private source, build, test, and stage public files
+    runs-on: ubuntu-latest
+    needs: preflight
+    if: needs.preflight.outputs.configured == 'true'
+    outputs:
+      changed: ${{ steps.delta.outputs.changed }
+      source_sha: ${{ steps.delta.outputs.source_sha }
+    steps:
+      - name: Checkout ONLY the public preview repository
+        uses: actions/checkout@v4
+        with:
+          path: preview
+          ref: main
+          fetch-depth: 1
+
+      - name: Checkout private LayaAir source with a READ-ONLY credential
+        uses: actions/checkout@v4
+        with:
+          repository: BaiMaGod/xiang-ai-kai-pao
+          ref: laya-v0.2-tech-validation
+          path: private
+          token: ${{ secrets.PREVIEW_SOURCE_READ_TOKEN }
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Compare private source SHA with last published SHA
+        id: delta
+        shell: bash
+        env:
+          FORCE: ${{ inputs.force || 'false' }
+        run: |
+          SOURCE_SHA="$(git -C private rev-parse HEAD)"
+          PREVIOUS_SHA="$(sed -n 's/^source_commit=//p' preview/laya-v0.2/version.txt | head -n 1)"
+          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          if [ "$SOURCE_SHA" = "$PREVIOUS_SHA" ] && [ "$FORCE" != "true" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Already published: $SOURCE_SHA; no build needed." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Build required: $SOURCE_SHA (previously $PREVIOUS_SHA)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Set up Node.js 20
+        if: steps.delta.outputs.changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: private/package-lock.json
+
+      - name: Install official LayaAir CLI 3.4.0
+        if: steps.delta.outputs.changed == 'true'
+        shell: bash
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/layabox/layaair-cli/master/install.sh | bash
+          ~/.layaair/layaair install 3.4.0
+          ~/.layaair/layaair --version
+
+      - name: Verify LayaAir 3.4 project and generate runtime
+        if: steps.delta.outputs.changed == 'true'
+        working-directory: private
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f "LayaXiangAI/engine/types/LayaAir.d.ts" ]; then
+            echo "::error::LayaAir engine type definitions missing from source checkout."
+            exit 1
+          fi
+          ~/.layaair/layaair --version=3.4.0 validate -p "$PWD/LayaXiangAI"
+          ~/.layaair/layaair --version=3.4.0 build web -p "$PWD/LayaXiangAI"
+
+      - name: Install pinned dependencies and run TypeScript/logic tests
+        if: steps.delta.outputs.changed == 'true'
+        working-directory: private
+        shell: bash
+        run: |
+          npm ci
+          npm run typecheck:laya
+          npm run test:laya
+
+      - name: Compile current game bundle and resources
+        if: steps.delta.outputs.changed == 'true'
+        working-directory: private
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ steps.delta.outputs.source_sha }
+        run: |
+          npm run build:laya
+          test -s LayaXiangAI/release/web/js/bundle.js
+          test -s LayaXiangAI/release/web/resources/quality.css
+          test -s LayaXiangAI/release/web/libs/laya.core.js
+          test -s LayaXiangAI/release/web/resources/art/v1/player_wang.png
+          # Cache-bust both JS and CSS; otherwise Pages CDN may show stale visuals.
+          SHORT_SHA="$(printf '%s' "$SOURCE_SHA" | cut -c1-12)"
+          sed -i "s#bundle.js?v=0.9.0-combat-build-art#bundle.js?v=$SHORT_SHA#g" LayaXiangAI/release/web/index.html
+          sed -i "s#quality.css?v=1#quality.css?v=$SHORT_SHA#g" LayaXiangAI/release/web/index.html
+          grep -F "bundle.js?v=$SHORT_SHA" LayaXiangAI/release/web/index.html
+          grep -F "quality.css?v=$SHORT_SHA" LayaXiangAI/release/web/index.html
+
+      - name: Install headless Chromium for browser gameplay tests
+        if: steps.delta.outputs.changed == 'true'
+        working-directory: private
+        shell: bash
+        run: npx playwright install --with-deps chromium
+
+      - name: Chromium QA - real rendering, touch, choices, boss and restart
+        if: steps.delta.outputs.changed == 'true'
+        working-directory: private
+        shell: bash
+        run: npm run test:browser
+
+      - name: Preserve browser screenshots and test results even on failed QA
+        if: always() && steps.delta.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: laya-browser-qa
+          path: |
+            private/.artifacts/*.png
+            private/.artifacts/*results.json
+          retention-days: 7
+          include-hidden-files: true
+          if-no-files-found: warn
+
+      - name: Publish only COMPILED game files in laya-v0.2
+        if: steps.delta.outputs.changed == 'true'
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ steps.delta.outputs.source_sha }
+        run: |
+          set -euo pipefail
+          mkdir -p preview/laya-v0.2
+          rsync -a --delete --exclude='.nojekyll' --exclude='*.meta' \
+            private/LayaXiangAI/release/web/ preview/laya-v0.2/
+          printf '向AI开炮 LayaAir Preview\nversion=0.9.0-combat-build-art\nsource_commit=%s\n' "$SOURCE_SHA" > preview/laya-v0.2/version.txt
+          # Fail closed if an editable source / sourcemap slips into public files.
+          if find preview/laya-v0.2 -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.map' -o -name 'package*.json' -o -name '*.md' \) | grep .; then
+            echo "::error::Source files detected in preview output; refusing to publish."
+            exit 1
+          fi
+          test -s preview/laya-v0.2/index.html
+          test -s preview/laya-v0.2/js/bundle.js
+          test -s preview/laya-v0.2/resources/quality.css
+          git -C preview config user.name "github-actions[bot]"
+          git -C preview config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C preview add -A -- laya-v0.2
+          git -C preview commit -m "deploy(laya): verified release $SOURCE_SHA" || true
+          git -C preview push origin HEAD:main
+          echo "Published compiled game commit $SOURCE_SHA to public preview repository." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Prepare clean public-only Pages bundle
+        if: steps.delta.outputs.changed == 'true'
+        shell: bash
+        run: |
+          mkdir -p site
+          rsync -a --exclude='.git' --exclude='.github' preview/ site/
+          test -s site/laya-v0.2/version.txt
+          test -s site/laya-v0.2/index.html
+
+      - name: Upload GitHub Pages artifact directly
+        if: steps.delta.outputs.changed == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy verified site without needing a second push workflow
+    needs: build
+    if: needs.build.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Deploy verified artifact
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  live-chromium:
+    name: Verify actual live Pages on mobile and desktop
+    needs: [build, deploy]
+    if: needs.build.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Open live deployed game and save real screenshots
+        env:
+          PREVIEW_URL: ${{ needs.deploy.outputs.page_url }
+          EXPECTED_SHA: ${{ needs.build.outputs.source_sha }
+        run: |
+          node <<'NODE'
+          const {chromium} = require('playwright');
+          const {mkdirSync} = require('fs');
+          const assert = require('node:assert/strict');
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          (async () => {
+            mkdirSync('qa-public', {recursive: true});
+            const base = process.env.PREVIEW_URL.replace(/\/$/, '') + '/laya-v0.2/';
+            const expected = process.env.EXPECTED_SHA;
+            let actual = '';
+            for (let i = 0; i < 18; i++) {
+              const response = await fetch(base + 'version.txt?v=' + Date.now(), {cache: 'no-store'});
+              actual = response.ok ? await response.text() : '';
+              if (actual.includes('source_commit=' + expected)) break;
+              await sleep(5000);
+            }
+            assert(actual.includes('source_commit=' + expected), 'Published version did not reach Pages CDN');
+            const browser = await chromium.launch({headless: true, args: ['--no-sandbox']});
+            try {
+              const mobile = await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+              const errors = [];
+              mobile.on('pageerror', e => errors.push('mobile: ' + e.message));
+              mobile.on('response', r => {if (r.status() >= 400) errors.push(r.status() + ' ' + r.url());});
+              await mobile.goto(base + '?test=1', {waitUntil:'networkidle', timeout:60000});
+              await mobile.locator('#splash').waitFor({state:'detached',timeout:30000});
+              await mobile.waitForFunction(() => window.__XIANG_AI_LAYA__?.ready, {timeout:30000});
+              await mobile.screenshot({path:'qa-public/live-mobile-start.png',fullPage:true});
+              assert.deepEqual(await mobile.evaluate(() => window.__XIANG_AI_LAYA__.artLoadFailures), []);
+              await mobile.locator('#start-game-dom').tap();
+              await mobile.waitForFunction(() => window.__XIANG_AI_LAYA__?.running);
+              await mobile.evaluate(() => window.__XIANG_AI_LAYA__.test.xp(6));
+              await mobile.locator('[data-modal-type="LEVEL_UP"]').waitFor();
+              assert.equal(await mobile.locator('.game-choice-button').count(), 3);
+              await mobile.screenshot({path:'qa-public/live-mobile-upgrade.png'});
+              await mobile.locator('.game-choice-button').first().tap();
+              await mobile.waitForFunction(() => window.__XIANG_AI_LAYA__.chosenUpgrades === 1);
+              await mobile.evaluate(() => window.__XIANG_AI_LAYA__.test.damage(1000));
+              await mobile.locator('[data-modal-type="GAME_OVER"]').waitFor();
+              await mobile.screenshot({path:'qa-public/live-mobile-game-over.png'});
+              await mobile.locator('[data-choice-id="RESTART"]').tap();
+              await mobile.waitForFunction(() => window.__XIANG_AI_LAYA__.running && window.__XIANG_AI_LAYA__.hp === 100);
+
+              const desktop = await browser.newPage({viewport:{width:1280,height:720}});
+              desktop.on('pageerror', e => errors.push('desktop: ' + e.message));
+              await desktop.goto(base + '?test=1', {waitUntil:'networkidle', timeout:60000});
+              await desktop.locator('#splash').waitFor({state:'detached',timeout:30000});
+              await desktop.screenshot({path:'qa-public/live-desktop-start.png'});
+              await desktop.locator('#start-game-dom').click();
+              await desktop.waitForFunction(() => window.__XIANG_AI_LAYA__?.running);
+              const x = await desktop.evaluate(() => window.__XIANG_AI_LAYA__.playerX);
+              await desktop.keyboard.down('d'); await desktop.waitForTimeout(450); await desktop.keyboard.up('d');
+              const nextX = await desktop.evaluate(() => window.__XIANG_AI_LAYA__.playerX);
+              assert(nextX > x + 8, 'Desktop keyboard movement failed');
+              await desktop.screenshot({path:'qa-public/live-desktop-battle.png'});
+              assert.deepEqual(errors, []);
+              console.log('PUBLIC_LAYA_LIVE_CHROMIUM_OK', {source:expected, mobile:'390x844', desktop:'1280x720'});
+            } finally {
+              await browser.close();
+            }
+          })().catch(e => {console.error(e);process.exit(1);});
+          NODE
+      - name: Retain post-deployment mobile and desktop screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: laya-live-public-screenshots
+          path: qa-public/*.png
+          retention-days: 7
+          if-no-files-found: warn
