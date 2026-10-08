@@ -233,6 +233,13 @@
     }
     stage.updateCanvasSize();
     const doc = win.document;
+    if ((doc == null ? void 0 : doc.head) && !doc.querySelector("link[data-ai-quality]")) {
+      const link = doc.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "resources/quality.css?v=1";
+      link.setAttribute("data-ai-quality", "1");
+      doc.head.appendChild(link);
+    }
     if ((doc == null ? void 0 : doc.documentElement) && (doc == null ? void 0 : doc.body)) {
       let viewportMeta = doc.querySelector('meta[name="viewport"]');
       if (!viewportMeta) {
@@ -366,7 +373,7 @@
     const keys = {};
     const navigation = new FlowField(WORLD_WIDTH, WORLD_HEIGHT, 40, (x, y) => canStandAt(x, y, 18));
     const enemyBuckets = /* @__PURE__ */ new Map();
-    const bulletPool = [], pickupPool = [];
+    const bulletPool = [], pickupPool = [], hitFxPool = [];
     const effects = [];
     let enemyId = 0, navCooldown = 0, hudCooldown = 0;
     let joystickX = 0, joystickY = 0, backgroundPaused = false;
@@ -547,12 +554,14 @@
     function spawnHitFx(x, y) {
       if (effects.length >= 48)
         return;
-      const fx = new Laya.Sprite();
-      attachArt(fx, ART.hit, 64, 64, 28, 28);
+      const fx = hitFxPool.pop() || new Laya.Sprite();
+      if (!fx.numChildren)
+        attachArt(fx, ART.hit, 64, 64, 28, 28);
       fx.pos(x, y);
+      fx.alpha = 1;
       fx.rotation = Math.random() * 360;
       projectileLayer.addChild(fx);
-      effects.push({ sprite: fx, life: 0.1, total: 0.1, x, y, floating: false });
+      effects.push({ sprite: fx, life: 0.12, total: 0.12, x, y, floating: false, recycleHit: true });
     }
     function drawWorld() {
       const bg = new Laya.Sprite();
@@ -912,40 +921,41 @@
       }
       const overlay = doc2.createElement("div");
       overlay.id = "game-choice-modal";
+      overlay.className = "ai-modal";
       overlay.dataset.modalType = type;
       overlay.setAttribute("role", "dialog");
       overlay.setAttribute("aria-modal", "true");
       overlay.setAttribute("aria-label", title);
-      overlay.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top)) 14px max(12px,env(safe-area-inset-bottom));box-sizing:border-box;background:rgba(2,7,13,.84);z-index:2147483646;font-family:Arial,sans-serif;color:white;touch-action:pan-y";
+      overlay.style.cssText = "position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(2,7,13,.88);color:white";
       const panel = doc2.createElement("div");
-      panel.style.cssText = "width:min(470px,100%);max-height:100%;overflow-y:auto;padding:24px 18px;box-sizing:border-box;border:1px solid #427888;border-radius:22px;background:linear-gradient(#143147,#081723);box-shadow:0 20px 70px #0009";
+      panel.className = "ai-modal-panel";
       overlay.appendChild(panel);
       const h = doc2.createElement("h2");
       h.textContent = title;
-      h.style.cssText = "font-size:clamp(23px,6vw,30px);margin:0;text-align:center";
+      h.className = "ai-modal-heading";
       panel.appendChild(h);
       const sub = doc2.createElement("p");
       sub.textContent = subtitle;
-      sub.style.cssText = "font-size:14px;line-height:1.6;color:#b8cfdc;text-align:center;margin:12px 0 18px";
+      sub.className = "ai-modal-subtitle";
       panel.appendChild(sub);
       const list = doc2.createElement("div");
-      list.style.cssText = "display:grid;gap:10px";
+      list.className = "ai-modal-list";
       panel.appendChild(list);
       choices.forEach((c, i) => {
         const b = doc2.createElement("button");
         b.type = "button";
-        b.className = "game-choice-button";
+        b.className = "game-choice-button ai-choice";
         b.dataset.choiceId = c.id;
         if (type === "START")
           b.id = "start-game-dom";
-        b.style.cssText = "width:100%;min-height:88px;padding:12px 14px;text-align:left;background:#193c53;border:1px solid #3d6177;border-left:5px solid " + (c.accent || "#58e8c9") + ";border-radius:12px;color:white;cursor:pointer;touch-action:manipulation";
+        b.style.setProperty("--choice-accent", c.accent || "#58e8c9");
         const n = doc2.createElement("div");
         n.textContent = c.name;
-        n.style.cssText = "font-size:18px;font-weight:800";
+        n.className = "ai-choice-name";
         b.appendChild(n);
         const d = doc2.createElement("div");
         d.textContent = c.desc;
-        d.style.cssText = "font-size:13px;line-height:1.5;color:#c4d5df;margin-top:7px";
+        d.className = "ai-choice-desc";
         b.appendChild(d);
         b.addEventListener("click", () => choose(i));
         list.appendChild(b);
@@ -954,9 +964,9 @@
         const b = doc2.createElement("button");
         b.id = "reroll-upgrades";
         b.type = "button";
+        b.className = "ai-extra";
         b.textContent = extra.label;
         b.disabled = extra.disabled;
-        b.style.cssText = "width:100%;padding:13px;margin-top:14px;border:1px solid #537289;border-radius:10px;background:#102538;color:#ffd078;font-size:14px";
         b.addEventListener("click", () => {
           if (!resolved && !extra.disabled) {
             resolved = true;
@@ -1225,8 +1235,12 @@
       effects.push({ sprite: t, life: 0.55, total: 0.55, x, y, floating: true });
     }
     function clearEffects() {
-      for (const f of effects)
-        f.sprite.destroy(true);
+      for (const f of effects) {
+        if (f.recycleHit) {
+          f.sprite.removeSelf();
+          hitFxPool.push(f.sprite);
+        } else f.sprite.destroy(true);
+      }
       effects.length = 0;
     }
     function updateEffects(dt) {
@@ -1234,7 +1248,10 @@
         const f = effects[i];
         f.life -= dt;
         if (f.life <= 0) {
-          f.sprite.destroy(true);
+          if (f.recycleHit) {
+            f.sprite.removeSelf();
+            hitFxPool.push(f.sprite);
+          } else f.sprite.destroy(true);
           effects.splice(i, 1);
           continue;
         }
@@ -1933,6 +1950,8 @@
       probe.playerLegAngle = playerVisual.left.rotation;
       probe.activeTextureEnemies = enemies.filter((e) => e.art.__artReady).length;
       probe.textureParts = texturePartCache.size;
+      probe.hitFxPool = hitFxPool.length;
+      probe.uiQualityStylesheet = !!(doc == null ? void 0 : doc.querySelector("link[data-ai-quality]"));
       probe.bulletPool = bulletPool.length;
       probe.pickupPool = pickupPool.length;
     }

@@ -1,0 +1,100 @@
+/* UI-quality pass: authored UI, retaining existing in-game art and combat logic. */
+.ai-modal{
+ position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;
+ box-sizing:border-box;padding:max(12px,env(safe-area-inset-top)) 14px max(12px,env(safe-area-inset-bottom));
+ background:rgba(2,6,15,.86);color:#effaff;font-family:"PingFang SC","Microsoft YaHei",Arial,sans-serif;
+ touch-action:pan-y;overscroll-behavior:contain;
+}
+.ai-modal-panel{
+ position:relative;isolation:isolate;box-sizing:border-box;width:min(510px,100%);max-height:100%;
+ overflow:auto;scrollbar-width:thin;scrollbar-color:#3f7085 transparent;
+ border:1px solid rgba(112,209,234,.38);border-radius:24px;
+ padding:26px 20px 22px;
+ background:radial-gradient(ellipse at 50% 0,rgba(21,92,117,.43),transparent 72%),linear-gradient(160deg,#122c40 0%,#071723 90%);
+ box-shadow:0 26px 75px rgba(0,0,0,.68),inset 0 1px rgba(255,255,255,.12);
+}
+.ai-modal-panel > *{position:relative;z-index:2}
+.ai-modal-heading{font-size:clamp(25px,5.7vw,34px);line-height:1.22;letter-spacing:.04em;
+ text-align:center;margin:0;color:#f5feff;text-shadow:0 2px 12px #0ad3ff44}
+.ai-modal-subtitle{font-size:14px;line-height:1.65;text-align:center;color:#b9d6e6;margin:12px 0 20px;overflow-wrap:anywhere}
+.ai-modal-list{display:grid;gap:10px}
+.ai-choice{appearance:none;position:relative;display:flex;flex-direction:column;justify-content:center;gap:5px;
+ width:100%;min-height:85px;padding:14px 16px;text-align:left;color:#f3fcff;
+ border:1px solid #466c82;border-left:4px solid var(--choice-accent,#58e8c9);
+ border-radius:15px;background:linear-gradient(113deg,rgba(41,92,115,.73),rgba(18,51,74,.96));
+ box-shadow:inset 0 1px rgba(255,255,255,.09);
+ cursor:pointer;touch-action:manipulation;transition:border-color .13s,filter .13s,transform .13s;
+}
+.ai-choice:focus-visible,.ai-extra:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.ai-choice:hover{filter:brightness(1.16);border-top-color:#82d7eb;border-bottom-color:#82d7eb}
+.ai-choice:active,.ai-extra:active{transform:scale(.985)}
+.ai-choice-name{font-size:18px;line-height:1.3;font-weight:900;letter-spacing:.01em}
+.ai-choice-desc{font-size:13px;line-height:1.55;color:#c5dde9}
+.ai-extra{width:100%;margin-top:13px;padding:12px 14px;min-height:44px;
+ border:1px solid rgba(135,168,187,.55);border-radius:12px;
+ background:#0c2839;color:#ffdb8a;font-size:14px;font-weight:700;cursor:pointer}
+.ai-extra:disabled{color:#7d97a7;opacity:.65;cursor:not-allowed}
+.ai-modal[data-modal-type="START"] .ai-modal-panel,
+.ai-modal[data-modal-type="VICTORY"] .ai-modal-panel,
+.ai-modal[data-modal-type="GAME_OVER"] .ai-modal-panel{
+ background:linear-gradient(180deg,rgba(9,26,39,.60),rgba(6,16,28,.96) 61%),
+ url("art/v2/city_square_hd.jpg") center 40%/cover,
+ #101f2e;
+ border-color:#46b7c8;
+}
+.ai-modal[data-modal-type="START"] .ai-modal-panel{padding-top:162px}
+.ai-modal[data-modal-type="START"] .ai-modal-panel:before,
+.ai-modal[data-modal-type="VICTORY"] .ai-modal-panel:before,
+.ai-modal[data-modal-type="GAME_OVER"] .ai-modal-panel:before{
+ content:"";position:absolute;z-index:1;pointer-events:none;
+ background:url("art/v1/player_wang.png") center/contain no-repeat;
+ width:132px;height:150px;top:9px;left:calc(50% - 66px);
+ filter:drop-shadow(0 7px 9px #01080bd0);
+}
+.ai-modal[data-modal-type="START"] .ai-modal-panel:after{
+ content:"";position:absolute;z-index:1;pointer-events:none;
+ background:url("art/v1/enemy_dog.png") center/contain no-repeat;
+ width:92px;height:100px;top:50px;right:4%;opacity:.9;
+ filter:drop-shadow(0 8px 8px #01080bcb);
+}
+.ai-modal[data-modal-type="VICTORY"] .ai-modal-panel,
+.ai-modal[data-modal-type="GAME_OVER"] .ai-modal-panel{padding-top:151px}
+.ai-modal[data-modal-type="GAME_OVER"] .ai-modal-panel{border-color:#bc647c}
+.ai-modal[data-modal-type="LEVEL_UP"] .ai-modal-heading{color:#fff0b6}
+.ai-modal[data-modal-type="LEVEL_UP"] .ai-choice:first-child{border-top-color:rgba(255,227,137,.64)}
+.ai-modal[data-modal-type="PAUSE"] .ai-modal-heading{color:#8cf9ed}
+.ai-modal[data-modal-type="VICTORY"] .ai-modal-heading{color:#8cffdb}
+.ai-modal[data-modal-type="GAME_OVER"] .ai-modal-heading{color:#ffb2b9}
+@media (max-height:690px){
+ .ai-modal-panel{padding:16px 14px 14px;border-radius:17px}
+ .ai-modal[data-modal-type="START"] .ai-modal-panel{padding-top:100px}
+ .ai-modal[data-modal-type="VICTORY"] .ai-modal-panel,
+ .ai-modal[data-modal-type="GAME_OVER"] .ai-modal-panel{padding-top:92px}
+ .ai-modal[data-modal-type="START"] .ai-modal-panel:before,
+ .ai-modal[data-modal-type="VICTORY"] .ai-modal-panel:before,
+ .ai-modal[data-modal-type="GAME_OVER"] .ai-modal-panel:before{height:90px;width:80px;left:calc(50% - 40px);top:4px}
+ .ai-modal[data-modal-type="START"] .ai-modal-panel:after{width:60px;height:65px;top:23px}
+ .ai-modal-heading{font-size:24px}
+ .ai-modal-subtitle{margin:8px 0 12px;font-size:13px}
+ .ai-choice{min-height:63px;padding:9px 12px}
+ .ai-choice-name{font-size:16px}.ai-choice-desc{font-size:12px}
+ .ai-modal-list{gap:7px}
+}
+@media (prefers-reduced-motion:reduce){.ai-choice{transition:none}}
+
+/* Reuse the game's production environment art during the engine preload too. */
+#splash{background:#06101d}
+#splash .splash-image{
+ background-image:linear-gradient(180deg,rgba(4,11,23,.37),rgba(2,8,18,.85)),url("art/v2/city_square_hd.jpg");
+ background-size:cover;background-position:center;
+}
+#splash .powered-by{position:relative;height:100%;padding-bottom:max(34px,env(safe-area-inset-bottom))}
+#splash .powered-by:before{
+ content:"向AI开炮";position:absolute;top:21%;left:0;width:100%;text-align:center;
+ font-family:"PingFang SC","Microsoft YaHei",Arial,sans-serif;
+ font-size:clamp(42px,11vw,78px);font-weight:900;letter-spacing:.08em;
+ color:#e9fdff;text-shadow:0 3px 20px #062840,0 4px 30px #36b9d477;
+}
+#splash .powered-by>p{font-size:11px;opacity:.58;letter-spacing:.12em}
+#splash .splash-progress-bar{background:rgba(5,30,42,.85);border:1px solid rgba(129,218,240,.28);height:8px}
+#splash .splash-progress-fill{background:linear-gradient(90deg,#29cce5,#82ffe1)}
