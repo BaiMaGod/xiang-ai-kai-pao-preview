@@ -33,12 +33,12 @@ jobs:
     name: Check free public runner and read-only source credential
     runs-on: ubuntu-latest
     outputs:
-      configured: ${{ steps.credential.outputs.configured }
+      configured: ${{ steps.credential.outputs.configured }}
     steps:
       - name: Check source credential without printing it
         id: credential
         env:
-          SOURCE_READ_TOKEN: ${{ secrets.PREVIEW_SOURCE_READ_TOKEN }
+          SOURCE_READ_TOKEN: ${{ secrets.PREVIEW_SOURCE_READ_TOKEN }}
         shell: bash
         run: |
           if [ -n "$SOURCE_READ_TOKEN" ]; then
@@ -58,8 +58,8 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.configured == 'true'
     outputs:
-      changed: ${{ steps.delta.outputs.changed }
-      source_sha: ${{ steps.delta.outputs.source_sha }
+      changed: ${{ steps.delta.outputs.changed }}
+      source_sha: ${{ steps.delta.outputs.source_sha }}
     steps:
       - name: Checkout ONLY the public preview repository
         uses: actions/checkout@v4
@@ -74,7 +74,7 @@ jobs:
           repository: BaiMaGod/xiang-ai-kai-pao
           ref: laya-v0.2-tech-validation
           path: private
-          token: ${{ secrets.PREVIEW_SOURCE_READ_TOKEN }
+          token: ${{ secrets.PREVIEW_SOURCE_READ_TOKEN }}
           persist-credentials: false
           fetch-depth: 1
 
@@ -82,7 +82,7 @@ jobs:
         id: delta
         shell: bash
         env:
-          FORCE: ${{ inputs.force || 'false' }
+          FORCE: ${{ inputs.force || 'false' }}
         run: |
           SOURCE_SHA="$(git -C private rev-parse HEAD)"
           PREVIOUS_SHA="$(sed -n 's/^source_commit=//p' preview/laya-v0.2/version.txt | head -n 1)"
@@ -138,7 +138,7 @@ jobs:
         working-directory: private
         shell: bash
         env:
-          SOURCE_SHA: ${{ steps.delta.outputs.source_sha }
+          SOURCE_SHA: ${{ steps.delta.outputs.source_sha }}
         run: |
           npm run build:laya
           test -s LayaXiangAI/release/web/js/bundle.js
@@ -180,7 +180,7 @@ jobs:
         if: steps.delta.outputs.changed == 'true'
         shell: bash
         env:
-          SOURCE_SHA: ${{ steps.delta.outputs.source_sha }
+          SOURCE_SHA: ${{ steps.delta.outputs.source_sha }}
         run: |
           set -euo pipefail
           mkdir -p preview/laya-v0.2
@@ -227,9 +227,9 @@ jobs:
       cancel-in-progress: false
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }
+      url: ${{ steps.deployment.outputs.page_url }}
     outputs:
-      page_url: ${{ steps.deployment.outputs.page_url }
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -254,8 +254,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Open live deployed game and save real screenshots
         env:
-          PREVIEW_URL: ${{ needs.deploy.outputs.page_url }
-          EXPECTED_SHA: ${{ needs.build.outputs.source_sha }
+          PREVIEW_URL: ${{ needs.deploy.outputs.page_url }}
+          EXPECTED_SHA: ${{ needs.build.outputs.source_sha }}
         run: |
           node <<'NODE'
           const {chromium} = require('playwright');
