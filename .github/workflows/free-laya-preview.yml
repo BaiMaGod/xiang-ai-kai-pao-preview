@@ -1,12 +1,9 @@
 name: Free LayaAir build, Chromium QA and Pages publish
 
 on:
-  # Running this public-repository workflow uses free standard GitHub-hosted runners.
-  # This push filter is only for bootstrapping/testing changes to this workflow.
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/free-laya-preview.yml
+  # Do not poll the private source repository or build on preview pushes.
+  # Manual source-builds still perform QA and direct Pages publication.
+  # Ordinary commits to preview/main deploy automatically via pages.yml.
   workflow_dispatch:
     inputs:
       force:
@@ -14,10 +11,6 @@ on:
         type: boolean
         required: false
         default: false
-  # Private-source commits cannot directly trigger a public workflow without
-  # a paid private runner or webhook service. Poll hourly (UTC).
-  schedule:
-    - cron: "23 * * * *"
 
 permissions:
   contents: write
